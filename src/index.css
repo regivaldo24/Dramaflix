@@ -1,0 +1,26 @@
+@import "tailwindcss";
+@import "video.js/dist/video-js.css";
+
+.video-js {
+  width: 100% !important;
+  height: 100% !important;
+  background-color: #000 !important;
+}
+
+.vjs-big-play-button {
+  display: none !important;
+}
+
+.vjs-loading-spinner {
+  border-radius: 50% !important;
+  border-width: 3px !important;
+  border-color: rgba(234, 179, 8, 0.8) !important; /* Yellow-500 */
+}
+
+.vjs-error-display {
+  background: rgba(0,0,0,0.8);
+}
+
+.video-js .vjs-tech {
+  object-fit: cover !important;
+}
