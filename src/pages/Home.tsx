@@ -171,8 +171,8 @@ export default function HomePage() {
           {watchedDramas.length > 0 && (
             <div className="px-4 py-8 relative z-20 mt-4">
               <h2 className="text-xl md:text-2xl font-bold mb-4 text-white text-shadow">Continuar Assistindo</h2>
-              <div className="flex overflow-x-auto gap-3 md:gap-4 no-scrollbar pb-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-                {watchedDramas.slice(0, 10).map((drama) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+                {watchedDramas.slice(0, 12).map((drama) => (
                   <MovieCard key={drama.id} drama={drama} handlePlayDrama={handlePlayDrama} user={user} />
                 ))}
               </div>
@@ -228,7 +228,7 @@ export default function HomePage() {
               {mockDramas.slice(0, 6).map((drama, idx) => (
                 <div 
                   key={`short-${drama.id}`}
-                  onClick={() => navigate('/shorts')}
+                  onClick={() => navigate(`/shorts/${drama.id}`)}
                   className="relative aspect-[9/16] rounded-xl overflow-hidden border border-white/10 group cursor-pointer"
                 >
                   <img src={drama.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />

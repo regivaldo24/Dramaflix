@@ -14,15 +14,33 @@ import {
   X
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { MOCK_SHORTS } from "../constants/shorts";
 
 export default function ShortsPage() {
   const navigate = useNavigate();
+  const { id } = useParams();
   const { user } = useAuth();
   const [activeIndex, setActiveIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (id && containerRef.current) {
+      const index = MOCK_SHORTS.findIndex(s => s.id.toString() === id);
+      if (index !== -1) {
+        setTimeout(() => {
+          if (containerRef.current) {
+            containerRef.current.scrollTo({
+              top: index * containerRef.current.clientHeight,
+              behavior: 'instant' as any
+            });
+            setActiveIndex(index);
+          }
+        }, 100);
+      }
+    }
+  }, [id]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
@@ -110,6 +128,8 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<any[]>([]);
   const [commentText, setCommentText] = useState("");
+  const [doubleTapHearts, setDoubleTapHearts] = useState<any[]>([]);
+  const lastTapRef = useRef<number>(0);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -257,17 +277,49 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
     return num.toString();
   };
 
+  const handleVideoClick = (e: React.MouseEvent) => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    
+    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      // Double tap detected
+      handleDoubleTap(e);
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+      // Single tap - toggle play/pause after a delay to ensure it wasn't a double tap
+      setTimeout(() => {
+        if (lastTapRef.current !== 0) {
+          togglePlay();
+        }
+      }, DOUBLE_TAP_DELAY);
+    }
+  };
+
+  const handleDoubleTap = (e: React.MouseEvent) => {
+    // Visual heart effect
+    const heart = {
+      id: Date.now(),
+      x: e.clientX,
+      y: e.clientY,
+    };
+    setDoubleTapHearts(prev => [...prev, heart]);
+    setTimeout(() => {
+      setDoubleTapHearts(prev => prev.filter(h => h.id !== heart.id));
+    }, 1000);
+
+    // Like logic
+    if (!isLiked) {
+      handleLike(e);
+    }
+  };
+
   return (
     <div className="h-screen w-full snap-start relative bg-black flex items-center justify-center">
-      {/* Video / Background */}
-      <div 
-        className="absolute inset-0 z-0 bg-cover bg-center opacity-50 blur-xl" 
-        style={{ backgroundImage: `url(${short.videoUrl})` }} 
-      />
-      
+      {/* Video Content Wrap */}
       <div 
         className="relative z-10 w-full h-full md:max-w-[450px] bg-black flex items-center justify-center overflow-hidden"
-        onClick={togglePlay}
+        onClick={handleVideoClick}
       >
         <video
           ref={videoRef}
@@ -276,6 +328,22 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
           className="h-full w-full object-cover"
           playsInline
         />
+
+        {/* Double Tap Hearts */}
+        <AnimatePresence>
+          {doubleTapHearts.map(heart => (
+            <motion.div
+              key={heart.id}
+              initial={{ opacity: 0, scale: 0.5, y: -50 }}
+              animate={{ opacity: [0, 1, 1, 0], scale: [0.5, 1.2, 1, 1.5], y: -200 }}
+              exit={{ opacity: 0 }}
+              style={{ position: 'fixed', left: heart.x - 40, top: heart.y - 40, zIndex: 100 }}
+              className="pointer-events-none"
+            >
+              <Heart className="w-20 h-20 text-red-500 fill-red-500 drop-shadow-2xl" />
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
         {/* Play Overlay Icon */}
         <AnimatePresence>
@@ -458,13 +526,20 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
               <div className="p-4 bg-neutral-950 border-t border-neutral-800 pb-8">
                 {user ? (
                   <form onSubmit={handleAddComment} className="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={commentText}
-                      onChange={e => setCommentText(e.target.value)}
-                      placeholder="Adicione um comentário..."
-                      className="flex-1 bg-neutral-800 border border-neutral-700 rounded-full px-5 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
-                    />
+                    <div className="flex-1 flex flex-col gap-1">
+                      <input 
+                        type="text" 
+                        value={commentText}
+                        onChange={e => setCommentText(e.target.value.substring(0, 500))}
+                        placeholder="Adicione um comentário..."
+                        className="w-full bg-neutral-800 border border-neutral-700 rounded-full px-5 py-2.5 text-sm text-white focus:outline-none focus:border-yellow-500 transition-colors"
+                      />
+                      <div className="flex justify-end px-2">
+                        <span className={`text-[10px] ${commentText.length >= 450 ? "text-red-500" : "text-neutral-500"}`}>
+                          {commentText.length}/500
+                        </span>
+                      </div>
+                    </div>
                     <button 
                       type="submit"
                       disabled={!commentText.trim()}

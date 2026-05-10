@@ -384,7 +384,7 @@ export default function ProfilePage() {
             {savedShorts.map((short) => (
               <div 
                 key={short.id} 
-                onClick={() => navigate('/shorts')}
+                onClick={() => navigate(`/shorts/${short.id}`)}
                 className="aspect-[9/16] rounded-xl overflow-hidden relative cursor-pointer group active:scale-95 transition-transform"
               >
                 <video 

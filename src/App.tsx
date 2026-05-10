@@ -81,6 +81,7 @@ export default function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/play/:id" element={<PlayerPage />} />
             <Route path="/shorts" element={<ShortsPage />} />
+            <Route path="/shorts/:id" element={<ShortsPage />} />
             <Route path="/my-list" element={<MyListPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/account" element={<AccountPage />} />
