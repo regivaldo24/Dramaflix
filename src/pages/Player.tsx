@@ -141,6 +141,10 @@ export default function PlayerPage() {
   };
 
   const handleQuality = (val: string) => {
+    if (val === quality) {
+      setShowSettingsMenu(false);
+      return;
+    }
     setQuality(val);
     if (playerRef.current) {
       // In a real scenario with quality levels plugin:
@@ -228,145 +232,92 @@ export default function PlayerPage() {
     const hlsSource = currentDrama?.trailer || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
     const sourceType = hlsSource.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4';
 
-    if (videoRef.current && !playerRef.current && !initializingRef.current) {
-        initializingRef.current = true;
-        
-        const container = videoRef.current;
-        
+    let player: any = null;
+
+    const initPlayer = async () => {
+      if (videoRef.current && !playerRef.current) {
         const videoElement = document.createElement("video");
-        videoElement.classList.add("video-js");
+        videoElement.className = "video-js vjs-big-play-centered";
         videoElement.setAttribute("playsinline", "true");
         videoElement.setAttribute("crossorigin", "anonymous");
-        
-        // Adicionar poster se disponível
         if (currentDrama?.image) {
           videoElement.setAttribute("poster", currentDrama.image);
         }
-        
-        container.appendChild(videoElement);
+        videoRef.current.appendChild(videoElement);
 
-        const player = videojs(videoElement, {
-            autoplay: false,
-            controls: false,
-            responsive: true,
-            fluid: true,
-            sources: [{ src: hlsSource, type: sourceType }]
+        player = videojs(videoElement, {
+          autoplay: false,
+          controls: false,
+          responsive: true,
+          fluid: true,
+          sources: [{ src: hlsSource, type: sourceType }]
         }, () => {
-            if (!player || player.isDisposed()) {
-              initializingRef.current = false;
-              return;
-            }
-            playerRef.current = player;
-            initializingRef.current = false;
+          playerRef.current = player;
+          console.log("Player is ready");
+          
+          // Try to play
+          player.play().catch((err: any) => {
+            console.warn("Autoplay blocked:", err);
+          });
+
+          // Sync time
+          let savedTimeStr = null;
+          try {
+            savedTimeStr = localStorage.getItem(`historico_tempo_${user?.id}_${id}`);
+          } catch (e) {}
+          const urlParams = new URLSearchParams(window.location.search);
+          const timeParamStr = urlParams.get('t');
+
+          if (timeParamStr) {
+            const t = parseFloat(timeParamStr);
+            if (!isNaN(t)) player.currentTime(t);
+          } else if (savedTimeStr) {
+            const t = parseFloat(savedTimeStr);
+            if (!isNaN(t)) player.currentTime(t);
+          }
+
+          player.on('timeupdate', () => {
+            if (!player || player.isDisposed()) return;
+            const cur = player.currentTime();
+            const dur = player.duration();
+            setCurrentTime(cur);
+            setDuration(dur);
             
-            console.log("Player is ready");
-            
-            // Tentar reprodução automática
-            try {
-              const playPromise = player.play();
-              if (playPromise !== undefined) {
-                playPromise.catch(err => {
-                  if (err && err.name !== 'AbortError') {
-                    console.log("Autoplay blocked or interrupted:", err);
-                  }
-                });
+            if (dur > 0) {
+              const progress = cur / dur;
+              if (progress > 0.8 && nextDrama && !preloadingStartedRef.current) {
+                preloadingStartedRef.current = true;
+                setIsPreloading(true);
               }
-            } catch (err) {
-              console.error("Manual play error early:", err);
+              if (progress > 0.95 && nextDrama) {
+                setShowNextPrompt(true);
+              }
             }
-
-            let savedTimeStr = null;
-            try {
-              savedTimeStr = localStorage.getItem(`historico_tempo_${user?.id}_${id}`);
-            } catch (e) {}
-            const urlParams = new URLSearchParams(window.location.search);
-            const timeParamStr = urlParams.get('t');
-
-            if (timeParamStr) {
-                const t = parseFloat(timeParamStr);
-                if (!isNaN(t)) player.currentTime(t);
-            } else if (savedTimeStr) {
-                const t = parseFloat(savedTimeStr);
-                if (!isNaN(t)) player.currentTime(t);
+            if (Math.floor(cur) % 5 === 0 && user) {
+               try {
+                 localStorage.setItem(`historico_tempo_${user.id}_${id}`, cur.toString());
+               } catch (e) {}
             }
+          });
 
-            player.on('timeupdate', () => {
-              if (!player || player.isDisposed()) return;
-              
-              const cur = player.currentTime();
-              const dur = player.duration();
-              setCurrentTime(cur);
-              setDuration(dur);
-              
-              if (dur > 0) {
-                const progress = cur / dur;
-                if (progress > 0.8 && nextDrama && !preloadingStartedRef.current) {
-                  preloadingStartedRef.current = true;
-                  setIsPreloading(true);
-                }
-                if (progress > 0.95 && nextDrama) {
-                  setShowNextPrompt(true);
-                  
-                  // Record episode as watched for limit purposes
-                  if (user && !isOwner) {
-                    const watchedKey = `watched_today_${user.id}`;
-                    const watchedDateKey = `watched_date_${user.id}`;
-                    const today = new Date().toDateString();
-                    let lastDate = null;
-                    let watchedCount = 0;
-                    try {
-                      lastDate = localStorage.getItem(watchedDateKey);
-                      watchedCount = parseInt(localStorage.getItem(watchedKey) || '0', 10);
-                      if (isNaN(watchedCount)) watchedCount = 0;
-                    } catch (e) {}
-                    
-                    if (lastDate !== today) {
-                      watchedCount = 0;
-                      try {
-                        localStorage.setItem(watchedDateKey, today);
-                      } catch (e) {}
-                    }
-                    
-                    try {
-                      localStorage.setItem(watchedKey, (watchedCount + 1).toString());
-                    } catch (e) {}
-                  }
-                }
-              }
-
-              if (Math.floor(cur) % 5 === 0 && user) {
-                 try {
-                   localStorage.setItem(`historico_tempo_${user.id}_${id}`, cur.toString());
-                 } catch (e) {}
-              }
-            });
-
-            player.on('play', () => setIsPlaying(true));
-            player.on('pause', () => setIsPlaying(false));
-            player.volume(0.8);
-            player.on('ended', () => {
-              if (nextDrama) navigate(`/play/${nextDrama.id}`);
-            });
+          player.on('play', () => setIsPlaying(true));
+          player.on('pause', () => setIsPlaying(false));
+          player.on('ended', () => {
+             if (nextDrama) navigate(`/play/${nextDrama.id}`);
+          });
         });
-        playerRef.current = player;
-    }
-
-    return () => {
-      initializingRef.current = false;
-      if (playerRef.current) {
-        try {
-          playerRef.current.dispose();
-        } catch (e) {
-          console.warn("VideoJS dispose error:", e);
-        }
-        playerRef.current = null;
-      }
-      if (sleepTimerRef.current) {
-        clearTimeout(sleepTimerRef.current);
-        sleepTimerRef.current = null;
       }
     };
-  }, [podeAssistir, user, id, nextDrama, currentDrama, navigate, isOwner]);
+
+    initPlayer();
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.dispose();
+        playerRef.current = null;
+      }
+    };
+  }, [user, id]);
 
   const togglePlay = () => {
     if (playerRef.current && !playerRef.current.isDisposed()) {
@@ -698,7 +649,14 @@ export default function PlayerPage() {
                                 {[0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2].map((rate) => (
                                   <button 
                                     key={rate}
-                                    onClick={() => { handleSpeed(rate); setActiveMenu('main'); }}
+                                    onClick={() => { 
+                                      if (playbackRate === rate) {
+                                        setShowSettingsMenu(false);
+                                      } else {
+                                        handleSpeed(rate); 
+                                        setActiveMenu('main'); 
+                                      }
+                                    }}
                                     className="flex items-center justify-between px-3 py-2.5 hover:bg-white/5 rounded-xl transition text-sm text-neutral-300"
                                   >
                                     <span>{rate === 1 ? 'Normal (1x)' : `${rate}x`}</span>
@@ -718,7 +676,14 @@ export default function PlayerPage() {
                                 {['Desativado', 'Português', 'Inglês', 'Espanhol'].map((sub) => (
                                   <button 
                                     key={sub}
-                                    onClick={() => { setSelectedSub(sub); setActiveMenu('main'); }}
+                                    onClick={() => { 
+                                      if (selectedSub === sub) {
+                                        setShowSettingsMenu(false);
+                                      } else {
+                                        setSelectedSub(sub); 
+                                        setActiveMenu('main'); 
+                                      }
+                                    }}
                                     className="flex items-center justify-between px-3 py-2.5 hover:bg-white/5 rounded-xl transition text-sm text-neutral-300"
                                   >
                                     <span>{sub}</span>
@@ -738,7 +703,14 @@ export default function PlayerPage() {
                                 {['Português (Brasil)', 'Inglês', 'Original'].map((audio) => (
                                   <button 
                                     key={audio}
-                                    onClick={() => { setSelectedAudio(audio); setActiveMenu('main'); }}
+                                    onClick={() => { 
+                                      if (selectedAudio === audio) {
+                                        setShowSettingsMenu(false);
+                                      } else {
+                                        setSelectedAudio(audio); 
+                                        setActiveMenu('main'); 
+                                      }
+                                    }}
                                     className="flex items-center justify-between px-3 py-2.5 hover:bg-white/5 rounded-xl transition text-sm text-neutral-300"
                                   >
                                     <span>{audio}</span>

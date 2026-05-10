@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes, Link, useLocation } from "react-router-dom";
 import { Home, MonitorPlay, Bookmark, Smile } from "lucide-react";
 import HomePage from "./pages/Home";
+import LoginPage from "./pages/Login";
 import PlayerPage from "./pages/Player";
 import ShortsPage from "./pages/Shorts";
 import MyListPage from "./pages/MyList";
@@ -79,6 +80,7 @@ export default function App() {
         <div className="w-full max-w-7xl mx-auto min-h-screen relative shadow-none bg-black overflow-hidden border-x-0 lg:border-x border-neutral-900">
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
             <Route path="/play/:id" element={<PlayerPage />} />
             <Route path="/shorts" element={<ShortsPage />} />
             <Route path="/shorts/:id" element={<ShortsPage />} />

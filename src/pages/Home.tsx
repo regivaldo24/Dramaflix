@@ -14,6 +14,8 @@ export default function HomePage() {
   const { podeAssistir, isOwner } = useAccess();
   const { user } = useAuth();
 
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
+
   const handlePlayDrama = (id: string | number, title: string) => {
     navigate(`/play/${id}`);
   };
@@ -42,27 +44,50 @@ export default function HomePage() {
   }, [user]);
 
   const recommendedDramas = useMemo(() => {
-    // Lógica simulada de recomendação
-    const isActionFan = Math.random() > 0.5; // Simulate $usuarioCurteAcao
+    // Lógica estável de recomendação baseada no usuário
+    if (!user) return [...mockDramas].slice(0, 10);
+    
+    // Usar uma semente determinística baseada no ID do usuário
+    const seed = user.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     let baseList = [...mockDramas];
-    if (isActionFan) {
-      // shuffle randomly to mock recommendation
-      baseList.sort(() => 0.5 - Math.random());
-    } else {
+    
+    if (seed % 2 === 0) {
       baseList.reverse();
+    } else {
+      // Rotacionar lista
+      const shift = seed % baseList.length;
+      baseList = [...baseList.slice(shift), ...baseList.slice(0, shift)];
     }
+    
     return baseList.slice(0, 10);
   }, [user]);
+
+  const heroDramas = useMemo(() => {
+    // Escolher os 5 primeiros dramas recomendados para o banner rotativo
+    return recommendedDramas.slice(0, 5);
+  }, [recommendedDramas]);
+
+  useEffect(() => {
+    if (heroDramas.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setCurrentHeroIndex((prev) => (prev + 1) % heroDramas.length);
+    }, 7000); // Rotaciona a cada 7 segundos
+    
+    return () => clearInterval(interval);
+  }, [heroDramas.length]);
+
+  const currentHeroDrama = heroDramas[currentHeroIndex] || filteredDramas[0];
 
   return (
     <div className="flex flex-col h-full bg-black overflow-y-auto overflow-x-hidden no-scrollbar pb-20">
       {/* Top Header */}
-      <div className="flex items-center justify-between px-4 pt-6 pb-2 gap-3 sticky top-0 bg-gradient-to-b from-black/90 to-transparent z-40">
-        <div className="flex-1 bg-[#1A1A1A] rounded-full flex items-center px-4 py-2">
-          <Search className="text-neutral-400 w-5 h-5 mr-2" />
+      <div className="flex items-center justify-between px-4 pt-6 pb-2 gap-2 sm:gap-4 sticky top-0 bg-gradient-to-b from-black/90 to-transparent z-40">
+        <div className="flex-1 bg-[#1A1A1A] rounded-full flex items-center px-3 sm:px-4 py-2 min-w-0">
+          <Search className="text-neutral-400 w-4 h-4 sm:w-5 sm:h-5 mr-2 shrink-0" />
           <input
             type="text"
-            placeholder="[Dublado] Minha irmã é incrível!"
+            placeholder="Buscar dramas..."
             className="bg-transparent border-none outline-none text-white text-sm w-full placeholder:text-neutral-500"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -116,52 +141,66 @@ export default function HomePage() {
       ) : (
         <>
           {/* Hero Netflix Style Banner */}
-          {filteredDramas.length > 0 && (
-            <div className="banner relative h-[65vh] md:h-[75vh] w-full mt-2 shrink-0 overflow-hidden">
-              {/* Background Image Layer with Blur */}
+          {heroDramas.length > 0 && (
+            <div className="banner relative h-[50vh] sm:h-[60vh] md:h-[75vh] w-full mt-2 shrink-0 overflow-hidden group">
+              {/* Background Image Layer with Blur and Transition */}
               <div 
                 className="absolute inset-0 bg-cover bg-center transition-all duration-1000 scale-110 blur-[4px]"
-                style={{ backgroundImage: `url(${recommendedDramas[0]?.image || filteredDramas[0]?.image})` }}
+                key={`bg-${currentHeroDrama?.id}`}
+                style={{ backgroundImage: `url(${currentHeroDrama?.image})` }}
               />
               
               {/* Stronger Gradient Overlay for Legibility */}
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 via-40% to-transparent" />
               
               {/* Content Container */}
-              <div className="relative z-10 w-full h-full flex flex-col justify-end pb-8 px-4">
-                <div className="max-w-2xl flex flex-col gap-2">
+              <div className="relative z-10 w-full h-full flex flex-col justify-end pb-12 px-4 md:px-12">
+                <div className="max-w-3xl flex flex-col gap-2">
                   <div className="bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded w-max tracking-wider uppercase mb-1 shadow-lg">
                     Recomendado para você
                   </div>
                   
-                  <Link to={`/play/${recommendedDramas[0]?.id || filteredDramas[0]?.id}`} className="block w-max">
+                  <Link to={`/play/${currentHeroDrama?.id}`} className="block w-max">
                     <h1 
-                      className="text-4xl md:text-6xl font-extrabold text-white text-shadow-lg leading-tight line-clamp-2 md:line-clamp-3 hover:text-yellow-400 transition-colors"
+                      className="text-3xl sm:text-4xl md:text-6xl font-extrabold text-white text-shadow-lg leading-tight line-clamp-2 md:line-clamp-3 hover:text-yellow-400 transition-colors"
                     >
-                      {recommendedDramas[0]?.title || filteredDramas[0]?.title}
+                      {currentHeroDrama?.title}
                     </h1>
                   </Link>
                   
-                  <p className="text-sm md:text-base text-gray-200 mt-2 mb-4 line-clamp-3 max-w-lg text-shadow font-medium">
-                     {recommendedDramas[0]?.description || filteredDramas[0]?.description || "Assista agora ao drama mais popular da plataforma com uma história apaixonante e cheia de reviravoltas inesquecíveis."}
+                  <p className="text-xs sm:text-sm md:text-base text-gray-200 mt-2 mb-4 line-clamp-2 md:line-clamp-3 max-w-lg text-shadow font-medium">
+                     {currentHeroDrama?.description || "Assista agora ao drama mais popular da plataforma com uma história apaixonante e cheia de reviravoltas inesquecíveis."}
                   </p>
                   
-                  <div className="flex gap-3 mt-2">
+                  <div className="flex gap-2 sm:gap-3 mt-2">
                     <button 
-                      onClick={() => handlePlayDrama(recommendedDramas[0]?.id || filteredDramas[0]?.id, recommendedDramas[0]?.title || filteredDramas[0]?.title)}
-                      className="bg-white hover:bg-neutral-200 text-black font-bold py-2.5 px-8 rounded-md transition flex items-center justify-center gap-2 shadow-xl active:scale-95 active:bg-red-600 active:text-white group/play"
+                      onClick={() => handlePlayDrama(currentHeroDrama?.id, currentHeroDrama?.title)}
+                      className="bg-white hover:bg-neutral-200 text-black font-bold py-2 sm:py-2.5 px-4 sm:px-8 rounded-md transition flex items-center justify-center gap-2 shadow-xl active:scale-95 active:bg-red-600 active:text-white group/play"
                     >
-                      <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-black border-b-[6px] border-b-transparent group-active/play:border-l-white"></div>
+                      <Play className="w-4 h-4 text-black fill-black group-active/play:fill-white" />
                       Assistir
                     </button>
                     
                     <button 
-                      onClick={() => handlePlayDrama(recommendedDramas[0]?.id || filteredDramas[0]?.id, recommendedDramas[0]?.title || filteredDramas[0]?.title)}
-                      className="bg-neutral-500/40 hover:bg-neutral-500/60 text-white font-bold py-2.5 px-8 rounded-md transition backdrop-blur-md border border-white/10 active:scale-95"
+                      onClick={() => handlePlayDrama(currentHeroDrama?.id, currentHeroDrama?.title)}
+                      className="bg-neutral-500/40 hover:bg-neutral-500/60 text-white font-bold py-2 sm:py-2.5 px-4 sm:px-8 rounded-md transition backdrop-blur-md border border-white/10 active:scale-95"
                     >
-                      Mais informações
+                      Informações
                     </button>
                   </div>
+                </div>
+
+                {/* Banner Indicators */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                  {heroDramas.map((_, idx) => (
+                    <button
+                      key={`indicator-${idx}`}
+                      onClick={() => setCurrentHeroIndex(idx)}
+                      className={`w-1.5 h-1.5 rounded-full transition-all ${
+                        idx === currentHeroIndex ? "w-6 bg-white" : "bg-white/40"
+                      }`}
+                    />
+                  ))}
                 </div>
               </div>
             </div>

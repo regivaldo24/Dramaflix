@@ -38,89 +38,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const logout = async () => {
+    localStorage.removeItem('logged_user');
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setIsOwner(false);
+    setIsAdmin(false);
+  };
+
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        let currentUser = session?.user ?? null;
+        // 1. Initial Quick Check (Local Storage or Immediate Session)
+        const { data: { session: immediateSession } } = await supabase.auth.getSession();
+        let currentUser = immediateSession?.user ?? null;
         
-        // Custom Auth Fallback
         const localUserStr = localStorage.getItem('logged_user');
         if (!currentUser && localUserStr) {
           try {
             const localUser = JSON.parse(localUserStr);
             if (localUser && localUser.id) {
-              // Construct a Supabase-like user object for compatibility
               currentUser = {
                 id: localUser.id,
                 email: localUser.email,
                 user_metadata: { full_name: localUser.username },
                 created_at: new Date().toISOString(),
-                app_metadata: {},
-                aud: 'authenticated'
+                ...localUser
               } as any;
-            }
-          } catch (e) {
-            console.error("Error parsing local_user", e);
-          }
-        }
-
-        let serverUser = null;
-        if (currentUser) {
-          try {
-            const res = await fetch('/api/sync-user', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ user: { id: currentUser.id, email: currentUser.email } })
-            });
-            serverUser = await res.json();
-            
-            if (serverUser?.banido) {
-              await supabase.auth.signOut();
-              localStorage.removeItem('logged_user');
-              alert("Sua conta foi banida. Entre em contato com o suporte.");
-              setUser(null);
-              setLoading(false);
-              return;
-            }
-
-            // Merge server data into currentUser for global access
-            currentUser = {
-              ...currentUser,
-              ...serverUser
-            };
-          } catch (e) {
-            console.error("Error syncing user with server:", e);
-          }
-        }
-
-        setUser(currentUser);
-        setIsOwner(currentUser?.email === OWNER_EMAIL);
-        setIsAdmin(checkAdminStatus(currentUser) || serverUser?.is_admin === 1);
-
-        // Sync to localStorage.users for simulation counting on admin dashboard if not already there
-        if (currentUser) {
-          const usersStr = localStorage.getItem('users') || '[]';
-          try {
-            let users = JSON.parse(usersStr);
-            if (!Array.isArray(users)) users = [];
-            const exists = users.some((u: any) => u.id === currentUser.id || u.email === currentUser.email);
-            if (!exists) {
-              const newUser = {
-                id: currentUser.id,
-                email: currentUser.email,
-                name: currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || "Usuário",
-                createdAt: currentUser?.created_at || new Date().toISOString()
-              };
-              try {
-                localStorage.setItem('users', JSON.stringify([...users, newUser]));
-              } catch (e) {}
             }
           } catch (e) {}
         }
+
+        // Set state quickly if we have something
+        if (currentUser) {
+          setUser(currentUser);
+          setIsOwner(currentUser.email === OWNER_EMAIL);
+          setIsAdmin(checkAdminStatus(currentUser));
+          setLoading(false); // Quick release
+        }
+
+        // 2. Background Sync
+        if (currentUser) {
+          fetch('/api/sync-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user: { id: currentUser.id, email: currentUser.email } })
+          }).then(res => res.json()).then(serverUser => {
+            if (serverUser?.banido) {
+               logout();
+               alert("Sua conta foi banida.");
+               return;
+            }
+            const updatedUser = { ...currentUser, ...serverUser };
+            setUser(updatedUser);
+            setIsAdmin(checkAdminStatus(updatedUser) || serverUser?.is_admin === 1);
+            localStorage.setItem('logged_user', JSON.stringify(updatedUser));
+          }).catch(e => console.error("Sync error", e));
+        } else {
+          setLoading(false);
+        }
       } catch (error) {
         console.error("Error fetching Supabase session:", error);
-      } finally {
         setLoading(false);
       }
     };
@@ -169,15 +148,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
   }, []);
-
-  const logout = async () => {
-    localStorage.removeItem('logged_user');
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-    setIsOwner(false);
-    setIsAdmin(false);
-  };
 
   return (
     <AuthContext.Provider value={{ user, session, loading, isOwner, isAdmin, logout }}>

@@ -110,7 +110,7 @@ export default function RewardsPage() {
         </div>
       </div>
 
-      <div className="flex-1 p-4 space-y-6">
+      <div className="w-full max-w-2xl mx-auto flex-1 p-4 space-y-6">
         {/* Banner */}
         <div className="bg-gradient-to-r from-[#FF4E72] to-[#F12B55] rounded-2xl p-6 shadow-xl relative overflow-hidden">
           <div className="relative z-10">

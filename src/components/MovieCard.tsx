@@ -83,7 +83,7 @@ export const MovieCard = ({ drama, handlePlayDrama, user, onFavoriteChange }: Mo
 
   return (
     <div 
-      className="movie min-w-[140px] w-[140px] md:min-w-[200px] md:w-[200px] shrink-0 cursor-pointer group transition-transform duration-300 hover:scale-105 relative" 
+      className="movie w-full cursor-pointer group transition-transform duration-300 hover:scale-105 relative" 
       onClick={() => handlePlayDrama(drama.id, drama.title)}
       onMouseEnter={playTrailer}
       onMouseLeave={stopTrailer}

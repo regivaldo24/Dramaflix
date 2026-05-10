@@ -901,10 +901,10 @@ async function startServer() {
 
     const id = isNaN(Number(shortId)) ? shortId : Number(shortId);
 
-    const likesCount = db.short_likes.filter((l: any) => l.short_id === id).length;
-    const comments = db.short_comments.filter((c: any) => c.short_id === id);
-    const isLiked = userId ? db.short_likes.some((l: any) => l.user_id === userId && l.short_id === id) : false;
-    const isFavorited = userId ? db.short_favorites.some((f: any) => f.user_id === userId && f.short_id === id) : false;
+    const likesCount = db.short_likes.filter((l: any) => String(l.short_id) === String(id)).length;
+    const comments = db.short_comments.filter((c: any) => String(c.short_id) === String(id));
+    const isLiked = userId ? db.short_likes.some((l: any) => String(l.user_id) === String(userId) && String(l.short_id) === String(id)) : false;
+    const isFavorited = userId ? db.short_favorites.some((f: any) => String(f.user_id) === String(userId) && String(f.short_id) === String(id)) : false;
 
     res.json({
       likesCount,
@@ -918,8 +918,13 @@ async function startServer() {
   app.get("/api/shorts/favorites/:userId", (req, res) => {
     const { userId } = req.params;
     const db = getDB();
-    const favorites = db.short_favorites.filter((f: any) => f.user_id === userId);
+    const favorites = db.short_favorites.filter((f: any) => String(f.user_id) === String(userId));
     res.json(favorites);
+  });
+
+  // API Catch-all
+  app.all("/api/*", (req, res) => {
+    res.status(404).json({ error: "Route not found" });
   });
 
   // Vite middleware for development

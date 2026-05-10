@@ -134,7 +134,7 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
   const { user } = useAuth();
 
   useEffect(() => {
-    if (isActive) {
+    if (isActive && short.id) {
       fetchShortData();
     }
   }, [isActive, short.id, user]);
@@ -143,6 +143,7 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
     try {
       const userId = user?.id || "";
       const res = await fetch(`/api/shorts/data/${short.id}?userId=${userId}`);
+      if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setLikesCount(data.likesCount);
       setCommentsCount(data.commentsCount);
@@ -157,7 +158,14 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
   useEffect(() => {
     if (isActive && videoRef.current) {
       videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {});
+      videoRef.current.muted = true; // Forçar mutado para garantir autoplay
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.warn("Autoplay was prevented:", error);
+          setIsPlaying(false);
+        });
+      }
       setIsPlaying(true);
     } else if (videoRef.current) {
       videoRef.current.pause();
@@ -327,6 +335,8 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
           loop
           className="h-full w-full object-cover"
           playsInline
+          muted
+          poster={short.image || ""}
         />
 
         {/* Double Tap Hearts */}
@@ -387,15 +397,15 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
         <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none z-10" />
 
         {/* Sidebar Actions */}
-        <div className="absolute right-4 bottom-32 z-20 flex flex-col gap-6 items-center">
+        <div className="absolute right-2 sm:right-4 bottom-24 sm:bottom-32 z-20 flex flex-col gap-4 sm:gap-6 items-center">
           <div className="flex flex-col items-center gap-1">
             <button 
               onClick={handleLike}
-              className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center group transition-transform active:scale-90"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center group transition-transform active:scale-90"
             >
-              <Heart className={`w-6 h-6 transition-all ${isLiked ? "fill-red-500 text-red-500 scale-125" : "text-white group-hover:scale-110"}`} />
+              <Heart className={`w-5 h-5 sm:w-6 sm:h-6 transition-all ${isLiked ? "fill-red-500 text-red-500 scale-125" : "text-white group-hover:scale-110"}`} />
             </button>
-            <span className="text-xs font-bold text-white text-shadow">{formatNumber(likesCount > 0 ? likesCount : (parseInt(short.likes) * 1000 || 0))}</span>
+            <span className="text-[10px] sm:text-xs font-bold text-white text-shadow">{formatNumber(likesCount > 0 ? likesCount : (parseInt(short.likes) * 1000 || 0))}</span>
           </div>
 
           <div className="flex flex-col items-center gap-1">
@@ -404,35 +414,35 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
                 e.stopPropagation();
                 setShowComments(true);
               }}
-              className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center active:scale-90 transition-transform"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center active:scale-90 transition-transform"
             >
-              <MessageCircle className="w-6 h-6 text-white" />
+              <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </button>
-            <span className="text-xs font-bold text-white text-shadow">{formatNumber(commentsCount > 0 ? commentsCount : (parseInt(short.comments) * 1000 || 0))}</span>
+            <span className="text-[10px] sm:text-xs font-bold text-white text-shadow">{formatNumber(commentsCount > 0 ? commentsCount : (parseInt(short.comments) * 1000 || 0))}</span>
           </div>
 
           <div className="flex flex-col items-center gap-1">
             <button 
               onClick={handleFavorite}
-              className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center group active:scale-90 transition-transform"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center group active:scale-90 transition-transform"
             >
-              <Bookmark className={`w-6 h-6 transition-all ${isFavorited ? "fill-white text-white scale-125" : "text-white group-hover:scale-110"}`} />
+              <Bookmark className={`w-5 h-5 sm:w-6 sm:h-6 transition-all ${isFavorited ? "fill-white text-white scale-125" : "text-white group-hover:scale-110"}`} />
             </button>
-            <span className="text-xs font-bold text-white text-shadow">Salvar</span>
+            <span className="text-[10px] sm:text-xs font-bold text-white text-shadow">Salvar</span>
           </div>
 
           <div className="flex flex-col items-center gap-1">
             <button 
               onClick={handleShare}
-              className="w-12 h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center group active:scale-90 transition-transform"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/30 backdrop-blur-md border border-white/10 flex items-center justify-center group active:scale-90 transition-transform"
             >
-              <Share2 className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
+              <Share2 className="w-5 h-5 sm:w-6 sm:h-6 text-white group-hover:scale-110 transition-transform" />
             </button>
-            <span className="text-xs font-bold text-white text-shadow">{short.shares}</span>
+            <span className="text-[10px] sm:text-xs font-bold text-white text-shadow">{short.shares}</span>
           </div>
           
-          <div className="mt-4 animate-spin-slow">
-            <div className="w-10 h-10 bg-neutral-800 rounded-full border-4 border-yellow-500/30 overflow-hidden">
+          <div className="mt-2 sm:mt-4 animate-spin-slow">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-neutral-800 rounded-full border-2 sm:border-4 border-yellow-500/30 overflow-hidden">
                <img src="https://images.unsplash.com/photo-1543906965-f9520aa2ed8a?auto=format&fit=crop&q=80&w=40" alt="Music" />
             </div>
           </div>
