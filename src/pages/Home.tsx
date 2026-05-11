@@ -1,4 +1,4 @@
-import { Search, Gift, ChevronRight, Heart, Play } from "lucide-react";
+import { Search, Gift, ChevronRight, ChevronLeft, Heart, Play } from "lucide-react";
 import { mockDramas } from "../data/mockData";
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -72,10 +72,20 @@ export default function HomePage() {
     
     const interval = setInterval(() => {
       setCurrentHeroIndex((prev) => (prev + 1) % heroDramas.length);
-    }, 7000); // Rotaciona a cada 7 segundos
+    }, 7000); // 7s interval
     
     return () => clearInterval(interval);
-  }, [heroDramas.length]);
+  }, [heroDramas.length, currentHeroIndex]); // Re-run when index changes to reset timer
+
+  const nextHero = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    setCurrentHeroIndex((prev) => (prev + 1) % heroDramas.length);
+  };
+
+  const prevHero = (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
+    setCurrentHeroIndex((prev) => (prev - 1 + heroDramas.length) % heroDramas.length);
+  };
 
   const currentHeroDrama = heroDramas[currentHeroIndex] || filteredDramas[0];
 
@@ -155,6 +165,20 @@ export default function HomePage() {
               
               {/* Content Container */}
               <div className="relative z-10 w-full h-full flex flex-col justify-end pb-12 px-4 md:px-12">
+                {/* Navigation Arrows */}
+                <button 
+                  onClick={prevHero}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/70 hover:text-white transition-all opacity-0 group-hover:opacity-100 hidden sm:block backdrop-blur-sm border border-white/10"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+                <button 
+                  onClick={nextHero}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-20 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white/70 hover:text-white transition-all opacity-0 group-hover:opacity-100 hidden sm:block backdrop-blur-sm border border-white/10"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+
                 <div className="max-w-3xl flex flex-col gap-2">
                   <div className="bg-red-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded w-max tracking-wider uppercase mb-1 shadow-lg">
                     Recomendado para você

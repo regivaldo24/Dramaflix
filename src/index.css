@@ -24,3 +24,17 @@
 .video-js .vjs-tech {
   object-fit: cover !important;
 }
+
+/* Hide debug overlays and stats */
+.vjs-nerd-stats,
+.vjs-stats,
+.vjs-debug,
+.vjs-info-overlay,
+.vjs-technical-info,
+[id*="vjs-debug"],
+[class*="vjs-debug"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

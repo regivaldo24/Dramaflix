@@ -44,6 +44,8 @@ export default function PlayerPage() {
   const [isStableVolume, setIsStableVolume] = useState(true);
   const [selectedSub, setSelectedSub] = useState('Desativado');
   const [selectedAudio, setSelectedAudio] = useState('Português (Brasil)');
+  const [showSkipIntro, setShowSkipIntro] = useState(false);
+  const skipIntroTime = 90; // Standard intro length
   const sleepTimerRef = useRef<any>(null);
   const [sleepTimeLimit, setSleepTimeLimit] = useState<number | null>(null); // in minutes
   const initializingRef = useRef(false);
@@ -160,6 +162,22 @@ export default function PlayerPage() {
     setActiveMenu('main');
   };
 
+  const handleSubtitlesChange = (sub: string) => {
+    setSelectedSub(sub);
+    if (playerRef.current && !playerRef.current.isDisposed()) {
+      const tracks = playerRef.current.textTracks();
+      for (let i = 0; i < tracks.length; i++) {
+        // Find track by label or language
+        if (tracks[i].label === sub) {
+          tracks[i].mode = 'showing';
+        } else {
+          tracks[i].mode = 'disabled';
+        }
+      }
+    }
+    setActiveMenu('main');
+  };
+
   const setSleepTimer = (minutes: number | null) => {
     if (sleepTimerRef.current) clearTimeout(sleepTimerRef.current);
     setSleepTimeLimit(minutes);
@@ -251,6 +269,9 @@ export default function PlayerPage() {
           }
           videoRef.current.appendChild(videoElement);
 
+          // Disable logging and debug
+          videojs.log.level('off');
+
           // Source selection
           const hlsSource = currentDrama?.trailer || "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8";
           const isHls = hlsSource.includes('.m3u8');
@@ -269,7 +290,8 @@ export default function PlayerPage() {
             }],
             html5: {
               vhs: {
-                overrideNative: !videojs.browser.IS_SAFARI
+                overrideNative: !videojs.browser.IS_SAFARI,
+                debug: false
               }
             }
           }, () => {
@@ -321,6 +343,13 @@ export default function PlayerPage() {
               setCurrentTime(cur);
               setDuration(dur);
               
+              // Skip Intro logic: show between 10s and 90s
+              if (cur >= 10 && cur < skipIntroTime) {
+                setShowSkipIntro(true);
+              } else {
+                setShowSkipIntro(false);
+              }
+              
               if (dur > 0) {
                 const progress = cur / dur;
                 if (progress > 0.8 && nextDrama && !preloadingStartedRef.current) {
@@ -340,6 +369,32 @@ export default function PlayerPage() {
 
             player.on('play', () => setIsPlaying(true));
             player.on('pause', () => setIsPlaying(false));
+            
+            // Add subtitles tracks
+            player.addRemoteTextTrack({
+              kind: 'subtitles',
+              label: 'Português',
+              srclang: 'pt',
+              src: 'https://brenopoliss.github.io/vtt-test/portugues.vtt',
+              default: false
+            }, false);
+
+            player.addRemoteTextTrack({
+              kind: 'subtitles',
+              label: 'Inglês',
+              srclang: 'en',
+              src: 'https://brenopoliss.github.io/vtt-test/english.vtt',
+              default: false
+            }, false);
+
+            player.addRemoteTextTrack({
+              kind: 'subtitles',
+              label: 'Espanhol',
+              srclang: 'es',
+              src: 'https://brenopoliss.github.io/vtt-test/espanol.vtt',
+              default: false
+            }, false);
+
             player.on('ended', () => {
                if (nextDrama) navigate(`/play/${nextDrama.id}`);
             });
@@ -363,25 +418,36 @@ export default function PlayerPage() {
 
   const togglePlay = (e?: React.MouseEvent) => {
     if (e && e.stopPropagation) e.stopPropagation();
-    setShowControls(true);
-    if (playerRef.current && !playerRef.current.isDisposed()) {
-      try {
-        if (playerRef.current.paused()) {
-          const playPromise = playerRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise.catch((error: any) => {
-              if (error && (error.name !== 'AbortError' && error.name !== 'NotAllowedError')) {
-                console.warn("Playback failed:", error);
-              }
-            });
-          }
-        } else {
-          playerRef.current.pause();
-        }
-      } catch (err) {
-        console.error("Toggle play error:", err);
-      }
+    
+    // Safety check for player readiness
+    const player = playerRef.current;
+    if (!player || player.isDisposed()) {
+      console.warn("Player not ready or disposed");
+      return;
     }
+
+    try {
+      if (player.paused()) {
+        const playPromise = player.play();
+        if (playPromise !== undefined) {
+          playPromise.catch((error: any) => {
+            // Auto-play or interaction issues
+            if (error && (error.name !== 'AbortError' && error.name !== 'NotAllowedError')) {
+              console.error("Playback failed:", error);
+            }
+            // Fallback to update UI if play was blocked
+            setIsPlaying(false);
+          });
+        }
+      } else {
+        player.pause();
+        setIsPlaying(false); // Immediate UI update for better responsiveness
+      }
+    } catch (err) {
+      console.error("Critical toggle play error:", err);
+    }
+    
+    setShowControls(true);
   };
 
   const skip = (seconds: number) => {
@@ -443,6 +509,13 @@ export default function PlayerPage() {
     const seekTime = Math.max(0, Math.min(pos * duration, duration));
     playerRef.current.currentTime(seekTime);
     setCurrentTime(seekTime);
+  };
+
+  const skipIntro = () => {
+    if (playerRef.current && !playerRef.current.isDisposed()) {
+      playerRef.current.currentTime(skipIntroTime);
+      setShowSkipIntro(false);
+    }
   };
 
   const handleProgressBarMouseMove = (e: React.MouseEvent) => {
@@ -519,18 +592,22 @@ export default function PlayerPage() {
                   {/* Dedicated container for Video.js that React won't touch children of */}
                   <div ref={videoRef} className="absolute inset-0" />
 
-                  {/* Move mouse overlay to handle only control visibility, not clicking to pause */}
+                  {/* Move mouse overlay to handle control visibility and clicking to pause */}
                   <div 
-                    className="absolute inset-0 z-30" 
+                    className="absolute inset-0 z-30 cursor-pointer" 
                     onMouseMove={handleMouseMove}
+                    onClick={togglePlay}
                   />
 
                   {/* Large Center Play Button */}
                   {!isPlaying && (
                     <div className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none animate-in fade-in zoom-in duration-300">
-                      <div className="w-20 h-20 bg-yellow-500/90 rounded-full flex items-center justify-center shadow-2xl shadow-yellow-500/40 backdrop-blur-sm group-hover/player:scale-110 transition-transform">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+                        className="w-20 h-20 bg-yellow-500/90 rounded-full flex items-center justify-center shadow-2xl shadow-yellow-500/40 backdrop-blur-sm group-hover/player:scale-110 transition-transform pointer-events-auto active:scale-95"
+                      >
                         <Play className="w-10 h-10 text-black fill-current ml-1" />
-                      </div>
+                      </button>
                     </div>
                   )}
 
@@ -547,16 +624,29 @@ export default function PlayerPage() {
                       </button>
                     </div>
                   )}
+
+                  {/* Skip Intro Button */}
+                  {showSkipIntro && (
+                    <div className="absolute bottom-20 right-6 z-40 animate-in fade-in slide-in-from-right-4 duration-300">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); skipIntro(); }}
+                        className="bg-black/60 backdrop-blur-md border border-white/20 text-white px-5 py-2.5 rounded-lg font-bold text-sm hover:bg-white/20 transition-all active:scale-95 flex items-center gap-2 group"
+                      >
+                        <SkipForward className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                        Pular Intro
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Custom Controls UI */}
                 <div 
                   id="controls"
                   onClick={(e) => e.stopPropagation()}
-                  className={`absolute inset-x-0 bottom-0 bg-[#111]/90 backdrop-blur-sm p-4 transition-opacity duration-300 z-50 border-t border-white/5 ${showControls ? 'opacity-100' : 'opacity-0'}`}
+                  className={`absolute inset-x-0 bottom-0 bg-[#111] p-4 transition-opacity duration-300 z-50 border-t border-white/5 ${showControls ? 'opacity-100' : 'opacity-0'}`}
                 >
                   {/* Progress Bar Container */}
-                  <div className="px-4 mb-4 relative">
+                  <div className="px-2 mb-4 relative">
                     <div 
                       ref={progressBarRef}
                       onMouseMove={handleProgressBarMouseMove}
@@ -588,14 +678,16 @@ export default function PlayerPage() {
 
                       {/* Played Progress */}
                       <div 
-                        className="absolute inset-y-0 left-0 bg-yellow-500 rounded-full transition-[width] duration-75"
-                        style={{ width: `${(currentTime / duration) * 100}%` }}
+                        className="absolute inset-y-0 left-0 bg-yellow-500 rounded-full"
+                        style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
                       >
                         {/* Draggable Circle (Thumb) */}
-                        <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-yellow-500 rounded-full shadow-xl shadow-yellow-500/40 transition-transform scale-0 group-hover/progress:scale-100 ${isDragging ? 'scale-125' : ''}`} />
+                        <div 
+                          className={`absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-yellow-500 rounded-full shadow-xl shadow-yellow-500/40 transition-transform scale-0 group-hover/progress:scale-100 ${isDragging ? 'scale-125' : ''}`} 
+                        />
                       </div>
 
-                      {/* Buffered Progress (Simulated or real if possible) */}
+                      {/* Buffered Progress */}
                       <div 
                         className="absolute inset-y-0 left-0 bg-white/10 rounded-full pointer-events-none"
                         style={{ width: '85%' }} // Simulated buffer for professional look
@@ -605,48 +697,63 @@ export default function PlayerPage() {
 
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
+                      {/* Play/Pause Button */}
                       <button 
+                        id="playPauseBtn"
+                        type="button"
                         onClick={(e) => togglePlay(e)} 
-                        className="w-[45px] h-[45px] flex items-center justify-center bg-[#222] text-white rounded-full hover:bg-[#333] hover:scale-105 transition-all duration-300 shadow-lg"
+                        className="w-[45px] h-[45px] flex items-center justify-center bg-[#222] text-white rounded-full hover:bg-[#333] hover:scale-105 active:scale-95 transition-all duration-300 shadow-lg cursor-pointer"
                       >
                         {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-1" />}
                       </button>
 
                       <div className="flex items-center gap-4 hidden sm:flex">
-                        <button onClick={() => skip(-10)} className="text-white hover:text-yellow-500 transition">
+                        <button 
+                          onClick={() => skip(-10)} 
+                          className="w-10 h-10 flex items-center justify-center text-white/70 hover:text-yellow-500 transition-colors"
+                          title="Voltar 10s"
+                        >
                           <RotateCcw className="w-5 h-5" />
                         </button>
 
-                        <button onClick={() => skip(10)} className="text-white hover:text-yellow-500 transition">
+                        <button 
+                          onClick={() => skip(10)} 
+                          className="w-10 h-10 flex items-center justify-center text-white/70 hover:text-yellow-500 transition-colors"
+                          title="Avançar 10s"
+                        >
                           <RotateCw className="w-5 h-5" />
                         </button>
                       </div>
 
-                      <div className="text-white text-xs md:text-sm font-medium tabular-nums px-2">
+                      <div className="text-white text-xs md:text-sm font-medium tabular-nums px-2 border-l border-white/10 ml-2">
                         {formatTime(currentTime)} / {formatTime(duration)}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-4 md:gap-6">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-0 group bg-[#222] rounded-full p-0.5 pr-0 hover:pr-3 transition-all duration-300 shadow-lg border border-white/5">
                         <button 
+                          id="muteBtn"
                           onClick={() => handleVolume(isMuted ? (volume > 0 ? volume : 0.8) : 0)} 
-                          className="w-[45px] h-[45px] flex items-center justify-center bg-[#222] text-white rounded-full hover:bg-[#333] hover:scale-105 transition-all duration-300 shadow-lg"
+                          className="w-[40px] h-[40px] flex items-center justify-center text-white rounded-full hover:bg-white/5 transition-all duration-300 cursor-pointer z-10"
                         >
                           {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                         </button>
-                        <input 
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.01"
-                          value={isMuted ? 0 : volume}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            handleVolume(val);
-                          }}
-                          className="w-[120px] h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-yellow-500 transition-all"
-                        />
+                        <div className="w-0 group-hover:w-[100px] overflow-hidden transition-all duration-300 flex items-center h-full">
+                          <input 
+                            id="volumeSlider"
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={isMuted ? 0 : volume}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              handleVolume(val);
+                            }}
+                            className="w-[90px] h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-yellow-500 focus:outline-none ml-2"
+                          />
+                        </div>
                       </div>
 
                       <div className="relative">
@@ -819,8 +926,7 @@ export default function PlayerPage() {
                                       if (selectedSub === sub) {
                                         setShowSettingsMenu(false);
                                       } else {
-                                        setSelectedSub(sub); 
-                                        setActiveMenu('main'); 
+                                        handleSubtitlesChange(sub); 
                                       }
                                     }}
                                     className="flex items-center justify-between px-3 py-2.5 hover:bg-white/5 rounded-xl transition text-sm text-neutral-300"
