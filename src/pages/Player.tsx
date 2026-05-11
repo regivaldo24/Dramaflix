@@ -51,6 +51,11 @@ export default function PlayerPage() {
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const shareMenuRef = useRef<HTMLDivElement>(null);
 
+  const [isDragging, setIsDragging] = useState(false);
+  const [hoverTime, setHoverTime] = useState<number | null>(null);
+  const [hoverX, setHoverX] = useState(0);
+  const progressBarRef = useRef<HTMLDivElement>(null);
+
   const currentDrama = mockDramas.find(d => d.id.toString() === id);
   const currentIndex = mockDramas.findIndex(d => d.id.toString() === id);
   const nextDrama = currentIndex !== -1 && currentIndex < mockDramas.length - 1 
@@ -229,83 +234,120 @@ export default function PlayerPage() {
       return;
     }
 
-    const hlsSource = currentDrama?.trailer || "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
-    const sourceType = hlsSource.includes('.m3u8') ? 'application/x-mpegURL' : 'video/mp4';
-
     let player: any = null;
 
     const initPlayer = async () => {
       if (videoRef.current && !playerRef.current) {
-        const videoElement = document.createElement("video");
-        videoElement.className = "video-js vjs-big-play-centered";
-        videoElement.setAttribute("playsinline", "true");
-        videoElement.setAttribute("crossorigin", "anonymous");
-        if (currentDrama?.image) {
-          videoElement.setAttribute("poster", currentDrama.image);
-        }
-        videoRef.current.appendChild(videoElement);
-
-        player = videojs(videoElement, {
-          autoplay: false,
-          controls: false,
-          responsive: true,
-          fluid: true,
-          sources: [{ src: hlsSource, type: sourceType }]
-        }, () => {
-          playerRef.current = player;
-          console.log("Player is ready");
+        // Safe check for existing player instance
+        try {
+          const videoElement = document.createElement("video");
+          videoElement.className = "video-js vjs-big-play-centered";
+          videoElement.setAttribute("playsinline", "true");
+          videoElement.setAttribute("crossorigin", "anonymous");
+          videoElement.setAttribute("preload", "auto");
           
-          // Try to play
-          player.play().catch((err: any) => {
-            console.warn("Autoplay blocked:", err);
-          });
-
-          // Sync time
-          let savedTimeStr = null;
-          try {
-            savedTimeStr = localStorage.getItem(`historico_tempo_${user?.id}_${id}`);
-          } catch (e) {}
-          const urlParams = new URLSearchParams(window.location.search);
-          const timeParamStr = urlParams.get('t');
-
-          if (timeParamStr) {
-            const t = parseFloat(timeParamStr);
-            if (!isNaN(t)) player.currentTime(t);
-          } else if (savedTimeStr) {
-            const t = parseFloat(savedTimeStr);
-            if (!isNaN(t)) player.currentTime(t);
+          if (currentDrama?.image) {
+            videoElement.setAttribute("poster", currentDrama.image);
           }
+          videoRef.current.appendChild(videoElement);
 
-          player.on('timeupdate', () => {
-            if (!player || player.isDisposed()) return;
-            const cur = player.currentTime();
-            const dur = player.duration();
-            setCurrentTime(cur);
-            setDuration(dur);
+          // Source selection
+          const hlsSource = currentDrama?.trailer || "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8";
+          const isHls = hlsSource.includes('.m3u8');
+          const sourceType = isHls ? 'application/x-mpegURL' : 'video/mp4';
+
+          player = videojs(videoElement, {
+            autoplay: true,
+            controls: false,
+            responsive: true,
+            fluid: true,
+            preload: 'auto',
+            playbackRates: [0.5, 1, 1.5, 2],
+            sources: [{ 
+              src: hlsSource, 
+              type: sourceType 
+            }],
+            html5: {
+              vhs: {
+                overrideNative: !videojs.browser.IS_SAFARI
+              }
+            }
+          }, () => {
+            playerRef.current = player;
             
-            if (dur > 0) {
-              const progress = cur / dur;
-              if (progress > 0.8 && nextDrama && !preloadingStartedRef.current) {
-                preloadingStartedRef.current = true;
-                setIsPreloading(true);
-              }
-              if (progress > 0.95 && nextDrama) {
-                setShowNextPrompt(true);
-              }
-            }
-            if (Math.floor(cur) % 5 === 0 && user) {
-               try {
-                 localStorage.setItem(`historico_tempo_${user.id}_${id}`, cur.toString());
-               } catch (e) {}
-            }
-          });
+            // Sync initial state
+            player.volume(volume);
+            player.muted(isMuted);
 
-          player.on('play', () => setIsPlaying(true));
-          player.on('pause', () => setIsPlaying(false));
-          player.on('ended', () => {
-             if (nextDrama) navigate(`/play/${nextDrama.id}`);
+            // Sync time from storage or URL
+            let savedTimeStr = null;
+            try {
+              savedTimeStr = localStorage.getItem(`historico_tempo_${user?.id}_${id}`);
+            } catch (e) {}
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            const timeParamStr = urlParams.get('t');
+
+            if (timeParamStr) {
+              const t = parseFloat(timeParamStr);
+              if (!isNaN(t)) player.currentTime(t);
+            } else if (savedTimeStr) {
+              const t = parseFloat(savedTimeStr);
+              if (!isNaN(t)) player.currentTime(t);
+            }
+            
+            // Error handling with automatic fallback
+            player.on('error', () => {
+              const err = player.error();
+              console.error("VideoJS Error Detail:", err);
+              
+              if (err.code === 4 && player.src() === currentDrama?.trailer) {
+                console.log("Primary source failed, attempting fallback...");
+                const fallbackSource = "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8";
+                player.src({
+                  src: fallbackSource,
+                  type: 'application/x-mpegURL'
+                });
+                player.play().catch(() => {});
+              } else {
+                setError(`Erro ao carregar mídia (${err.code}): ${err.message}`);
+              }
+            });
+
+            player.on('timeupdate', () => {
+              if (!player || player.isDisposed()) return;
+              const cur = player.currentTime();
+              const dur = player.duration();
+              setCurrentTime(cur);
+              setDuration(dur);
+              
+              if (dur > 0) {
+                const progress = cur / dur;
+                if (progress > 0.8 && nextDrama && !preloadingStartedRef.current) {
+                  preloadingStartedRef.current = true;
+                  setIsPreloading(true);
+                }
+                if (progress > 0.95 && nextDrama) {
+                  setShowNextPrompt(true);
+                }
+              }
+              if (Math.floor(cur) % 5 === 0 && user) {
+                 try {
+                   localStorage.setItem(`historico_tempo_${user.id}_${id}`, cur.toString());
+                 } catch (e) {}
+              }
+            });
+
+            player.on('play', () => setIsPlaying(true));
+            player.on('pause', () => setIsPlaying(false));
+            player.on('ended', () => {
+               if (nextDrama) navigate(`/play/${nextDrama.id}`);
+            });
           });
-        });
+        } catch (e) {
+          console.error("Failed to initialize VideoJS:", e);
+          setError("Falha crítica ao carregar o player de vídeo.");
+        }
       }
     };
 
@@ -319,14 +361,16 @@ export default function PlayerPage() {
     };
   }, [user, id]);
 
-  const togglePlay = () => {
+  const togglePlay = (e?: React.MouseEvent) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    setShowControls(true);
     if (playerRef.current && !playerRef.current.isDisposed()) {
       try {
         if (playerRef.current.paused()) {
           const playPromise = playerRef.current.play();
           if (playPromise !== undefined) {
             playPromise.catch((error: any) => {
-              if (error && error.name !== 'AbortError') {
+              if (error && (error.name !== 'AbortError' && error.name !== 'NotAllowedError')) {
                 console.warn("Playback failed:", error);
               }
             });
@@ -392,6 +436,50 @@ export default function PlayerPage() {
     if (nextDrama) navigate(`/play/${nextDrama.id}`);
   };
 
+  const handleSeek = (e: React.MouseEvent | MouseEvent) => {
+    if (!progressBarRef.current || !playerRef.current || playerRef.current.isDisposed()) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    const seekTime = Math.max(0, Math.min(pos * duration, duration));
+    playerRef.current.currentTime(seekTime);
+    setCurrentTime(seekTime);
+  };
+
+  const handleProgressBarMouseMove = (e: React.MouseEvent) => {
+    if (!progressBarRef.current) return;
+    const rect = progressBarRef.current.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    const time = Math.max(0, Math.min(pos * duration, duration));
+    setHoverTime(time);
+    setHoverX(e.clientX - rect.left);
+    
+    if (isDragging) {
+      handleSeek(e);
+    }
+  };
+
+  const handleProgressBarMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    handleSeek(e);
+  };
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => setIsDragging(false);
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isDragging) handleSeek(e);
+    };
+
+    if (isDragging) {
+      window.addEventListener('mousemove', handleGlobalMouseMove);
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [isDragging]);
+
   const formatTime = (time: number) => {
     if (isNaN(time) || time < 0) return "0:00";
     const min = Math.floor(time / 60);
@@ -427,9 +515,15 @@ export default function PlayerPage() {
           ) : (
             <div className="flex flex-col gap-4">
               <div className="w-full bg-black rounded-none md:rounded-xl overflow-hidden relative flex flex-col group shadow-2xl border border-neutral-800/50">
-                <div className="relative w-full aspect-video group/player" onClick={togglePlay}>
+                <div className="relative w-full aspect-video group/player">
                   {/* Dedicated container for Video.js that React won't touch children of */}
                   <div ref={videoRef} className="absolute inset-0" />
+
+                  {/* Move mouse overlay to handle only control visibility, not clicking to pause */}
+                  <div 
+                    className="absolute inset-0 z-30" 
+                    onMouseMove={handleMouseMove}
+                  />
 
                   {/* Large Center Play Button */}
                   {!isPlaying && (
@@ -456,38 +550,77 @@ export default function PlayerPage() {
                 </div>
 
                 {/* Custom Controls UI */}
-                <div className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-4 transition-opacity duration-300 z-50 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-                  {/* Progress Bar */}
-                  <div className="px-2 mb-4">
-                    <input 
-                      type="range"
-                      min="0"
-                      max={duration || 0}
-                      step="0.1"
-                      value={currentTime}
-                      onChange={(e) => {
-                        const time = parseFloat(e.target.value);
-                        if (playerRef.current && !playerRef.current.isDisposed()) {
-                          playerRef.current.currentTime(time);
-                        }
-                      }}
-                      className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-yellow-500 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-yellow-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:appearance-none"
-                    />
+                <div 
+                  id="controls"
+                  onClick={(e) => e.stopPropagation()}
+                  className={`absolute inset-x-0 bottom-0 bg-[#111]/90 backdrop-blur-sm p-4 transition-opacity duration-300 z-50 border-t border-white/5 ${showControls ? 'opacity-100' : 'opacity-0'}`}
+                >
+                  {/* Progress Bar Container */}
+                  <div className="px-4 mb-4 relative">
+                    <div 
+                      ref={progressBarRef}
+                      onMouseMove={handleProgressBarMouseMove}
+                      onMouseLeave={() => setHoverTime(null)}
+                      onMouseDown={handleProgressBarMouseDown}
+                      className="relative h-1.5 w-full bg-white/20 rounded-full cursor-pointer group/progress transition-all hover:h-2"
+                    >
+                      {/* Hover Preview Tooltip */}
+                      {hoverTime !== null && (
+                        <div 
+                          className="absolute bottom-full mb-4 -translate-x-1/2 flex flex-col items-center animate-in fade-in zoom-in duration-200 pointer-events-none z-[100]"
+                          style={{ left: `${hoverX}px` }}
+                        >
+                          <div className="bg-black/90 backdrop-blur-md border border-white/20 rounded-xl overflow-hidden shadow-2xl w-32 h-20 mb-2 relative">
+                            {currentDrama?.image && (
+                              <img 
+                                src={currentDrama.image} 
+                                className="w-full h-full object-cover opacity-60 grayscale-[0.3]" 
+                                alt="Preview" 
+                              />
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                          </div>
+                          <div className="bg-white text-black text-[10px] font-black px-2 py-1 rounded shadow-lg uppercase tracking-wider">
+                            {formatTime(hoverTime)}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Played Progress */}
+                      <div 
+                        className="absolute inset-y-0 left-0 bg-yellow-500 rounded-full transition-[width] duration-75"
+                        style={{ width: `${(currentTime / duration) * 100}%` }}
+                      >
+                        {/* Draggable Circle (Thumb) */}
+                        <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-yellow-500 rounded-full shadow-xl shadow-yellow-500/40 transition-transform scale-0 group-hover/progress:scale-100 ${isDragging ? 'scale-125' : ''}`} />
+                      </div>
+
+                      {/* Buffered Progress (Simulated or real if possible) */}
+                      <div 
+                        className="absolute inset-y-0 left-0 bg-white/10 rounded-full pointer-events-none"
+                        style={{ width: '85%' }} // Simulated buffer for professional look
+                      />
+                    </div>
                   </div>
 
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
-                      <button onClick={togglePlay} className="text-white hover:text-yellow-500 transition">
-                        {isPlaying ? <Pause className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current" />}
+                      <button 
+                        onClick={(e) => togglePlay(e)} 
+                        className="w-[45px] h-[45px] flex items-center justify-center bg-[#222] text-white rounded-full hover:bg-[#333] hover:scale-105 transition-all duration-300 shadow-lg"
+                      >
+                        {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-1" />}
                       </button>
 
-                      <button onClick={() => skip(-10)} className="text-white hover:text-yellow-500 transition hidden sm:block">
-                        <RotateCcw className="w-6 h-6" />
-                      </button>
+                      <div className="flex items-center gap-4 hidden sm:flex">
+                        <button onClick={() => skip(-10)} className="text-white hover:text-yellow-500 transition">
+                          <RotateCcw className="w-5 h-5" />
+                        </button>
 
-                      <button onClick={() => skip(10)} className="text-white hover:text-yellow-500 transition hidden sm:block">
-                        <RotateCw className="w-6 h-6" />
-                      </button>
+                        <button onClick={() => skip(10)} className="text-white hover:text-yellow-500 transition">
+                          <RotateCw className="w-5 h-5" />
+                        </button>
+                      </div>
 
                       <div className="text-white text-xs md:text-sm font-medium tabular-nums px-2">
                         {formatTime(currentTime)} / {formatTime(duration)}
@@ -495,18 +628,24 @@ export default function PlayerPage() {
                     </div>
 
                     <div className="flex items-center gap-4 md:gap-6">
-                      <div className="flex items-center gap-2 group/volume">
-                        <button onClick={() => handleVolume(isMuted ? 1 : 0)} className="text-white hover:text-yellow-500 transition">
-                          {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 md:w-5 md:h-5" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5" />}
+                      <div className="flex items-center gap-3">
+                        <button 
+                          onClick={() => handleVolume(isMuted ? (volume > 0 ? volume : 0.8) : 0)} 
+                          className="w-[45px] h-[45px] flex items-center justify-center bg-[#222] text-white rounded-full hover:bg-[#333] hover:scale-105 transition-all duration-300 shadow-lg"
+                        >
+                          {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                         </button>
                         <input 
                           type="range"
                           min="0"
                           max="1"
-                          step="0.05"
-                          value={volume}
-                          onChange={(e) => handleVolume(parseFloat(e.target.value))}
-                          className="w-16 md:w-24 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white opacity-0 group-hover/volume:opacity-100 transition-opacity hidden sm:block"
+                          step="0.01"
+                          value={isMuted ? 0 : volume}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            handleVolume(val);
+                          }}
+                          className="w-[120px] h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-yellow-500 transition-all"
                         />
                       </div>
 
