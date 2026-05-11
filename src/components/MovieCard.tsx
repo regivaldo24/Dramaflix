@@ -92,6 +92,7 @@ export const MovieCard = ({ drama, handlePlayDrama, user, onFavoriteChange }: Mo
         <img
           src={drama.image}
           alt={drama.title}
+          loading="lazy"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         <video 
@@ -103,6 +104,7 @@ export const MovieCard = ({ drama, handlePlayDrama, user, onFavoriteChange }: Mo
           muted 
           loop
           playsInline
+          preload="none"
         >
           <source src={drama.trailer || "https://www.w3schools.com/html/mov_bbb.mp4"} type="video/mp4" />
         </video>

@@ -294,7 +294,7 @@ export default function HomePage() {
                   onClick={() => navigate(`/shorts/${drama.id}`)}
                   className="relative aspect-[9/16] rounded-xl overflow-hidden border border-white/10 group cursor-pointer"
                 >
-                  <img src={drama.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
+                  <img src={drama.image} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent " />
                   <div className="absolute bottom-2 left-2 right-2">
                     <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-tight mb-0.5">Capítulo {idx + 1}</p>

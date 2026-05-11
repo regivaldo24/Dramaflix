@@ -337,6 +337,7 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
           playsInline
           muted
           poster={short.image || ""}
+          preload={isActive ? "auto" : "metadata"}
         />
 
         {/* Double Tap Hearts */}
@@ -443,7 +444,7 @@ function ShortItem({ short, isActive, isLast }: { short: any; isActive: boolean;
           
           <div className="mt-2 sm:mt-4 animate-spin-slow">
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-neutral-800 rounded-full border-2 sm:border-4 border-yellow-500/30 overflow-hidden">
-               <img src="https://images.unsplash.com/photo-1543906965-f9520aa2ed8a?auto=format&fit=crop&q=80&w=40" alt="Music" />
+               <img src="https://images.unsplash.com/photo-1543906965-f9520aa2ed8a?auto=format&fit=crop&q=80&w=40" loading="lazy" alt="Music" />
             </div>
           </div>
         </div>

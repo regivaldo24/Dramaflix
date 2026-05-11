@@ -52,6 +52,7 @@ export default function PlayerPage() {
   
   const settingsMenuRef = useRef<HTMLDivElement>(null);
   const shareMenuRef = useRef<HTMLDivElement>(null);
+  const pageRef = useRef<HTMLDivElement>(null);
 
   const [isDragging, setIsDragging] = useState(false);
   const [hoverTime, setHoverTime] = useState<number | null>(null);
@@ -101,6 +102,14 @@ export default function PlayerPage() {
       }
     }
   };
+
+  useEffect(() => {
+    if (pageRef.current) {
+      pageRef.current.scrollTo(0, 0);
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [id]);
 
   useEffect(() => {
     if (id && user) {
@@ -561,7 +570,10 @@ export default function PlayerPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0a] overflow-y-auto no-scrollbar relative w-full min-h-screen select-none">
+    <div 
+      ref={pageRef}
+      className="flex flex-col h-full bg-[#0a0a0a] overflow-y-auto no-scrollbar relative w-full min-h-screen select-none"
+    >
       <div className={`fixed top-4 left-4 z-50 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
         <button 
           onClick={() => navigate(-1)}
@@ -664,6 +676,7 @@ export default function PlayerPage() {
                             {currentDrama?.image && (
                               <img 
                                 src={currentDrama.image} 
+                                loading="lazy"
                                 className="w-full h-full object-cover opacity-60 grayscale-[0.3]" 
                                 alt="Preview" 
                               />
@@ -1188,7 +1201,7 @@ export default function PlayerPage() {
                 className="flex gap-3 group text-left hover:bg-neutral-900/50 p-2 rounded-xl transition-all"
               >
                 <div className="w-40 aspect-video rounded-lg overflow-hidden flex-shrink-0 relative">
-                  <img src={drama.image} alt={drama.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+                  <img src={drama.image} loading="lazy" alt={drama.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                   <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors" />
                   <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white">
                     01:45
