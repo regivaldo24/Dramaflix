@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes, Link, useLocation } from "react-router-dom";
 import { Home, MonitorPlay, Bookmark, Smile } from "lucide-react";
+import { Analytics } from "@vercel/analytics/react";
 import HomePage from "./pages/Home";
 import LoginPage from "./pages/Login";
 import PlayerPage from "./pages/Player";
@@ -122,6 +123,7 @@ export default function App() {
           <ChatWidget />
         </div>
       </div>
+      <Analytics />
     </BrowserRouter>
   );
 }
