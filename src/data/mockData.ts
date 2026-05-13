@@ -7,7 +7,7 @@ export const mockDramas = [
     pill: "Dublado",
     tag: "Renascimento",
     description: "Após ser traída, ela ressurge com um único objetivo: vingança contra aqueles que riram de sua queda.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
     duration: 120,
   },
   {
@@ -18,7 +18,7 @@ export const mockDramas = [
     pill: "Exclusivo",
     tag: "Doce",
     description: "Para proteger sua família, ela guarda um grande segredo, mas o amor verdadeiro tentará descobrir a verdade.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
     duration: 95,
   },
   {
@@ -29,7 +29,7 @@ export const mockDramas = [
     pill: "Dublado",
     tag: "Sistema",
     description: "Uma princesa descobre um poder incrível que despertará uma aventura épica contra um reino corrupto.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
     duration: 110,
   },
   {
@@ -40,7 +40,7 @@ export const mockDramas = [
     pill: "Dublado",
     tag: "Caso de uma Noite",
     description: "O que parecia ser apenas uma noite de paixão transforma sua vida em um jogo milionário de sedução.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
     duration: 85,
   },
   {
@@ -51,7 +51,7 @@ export const mockDramas = [
     pill: "Dublado",
     tag: "Superação",
     description: "Ninguém acreditava nela até que ela voltou, rica, poderosa e pronta para mostrar seu real valor.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
     duration: 130,
   },
   {
@@ -62,7 +62,7 @@ export const mockDramas = [
     pill: "Dublado",
     tag: "Amor doroloso",
     description: "Um romance que começa virtualmente se depara com obstáculos sombrios do mundo real.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
     duration: 105,
   },
   {
@@ -73,7 +73,7 @@ export const mockDramas = [
     pill: "Exclusivo",
     tag: "Romance",
     description: "Anos depois de uma separação dolorosa, Maya reencontra seu primeiro amor em circunstâncias inesperadas.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
     duration: 115,
   },
   {
@@ -84,7 +84,7 @@ export const mockDramas = [
     pill: "Dublado",
     tag: "Suspense",
     description: "Um detetive aposentado é forçado a voltar à ativa quando uma antiga prova de um caso não resolvido reaparece.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
     duration: 98,
   },
   {
@@ -95,7 +95,7 @@ export const mockDramas = [
     pill: "Legendado",
     tag: "Drama",
     description: "Entre a carreira dos sonhos e o amor da sua vida, Julia precisa tomar a decisão mais difícil de sua jornada.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackAds.mp4",
     duration: 140,
   },
   {
@@ -106,7 +106,7 @@ export const mockDramas = [
     pill: "Dublado",
     tag: "Aventura",
     description: "Em um reino dividido pela guerra, uma jovem camponesa descobre que é a única herdeira legítima do trono.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
     duration: 125,
   },
   {
@@ -117,7 +117,7 @@ export const mockDramas = [
     pill: "Exclusivo",
     tag: "Romance",
     description: "Dois estranhos se conhecem por acaso nas ruas de Paris e vivem uma conexão profunda que mudará suas vidas para sempre.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/VolkswagenGTIReview.mp4",
     duration: 102,
   },
   {
@@ -128,7 +128,7 @@ export const mockDramas = [
     pill: "Dublado",
     tag: "Ação",
     description: "Traído por seus sócios, um bilionário retorna sob um novo nome para recuperar seu império e punir os traidores.",
-    trailer: "https://www.w3schools.com/html/mov_bbb.mp4",
+    trailer: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/WeAreGoingOnBullrun.mp4",
     duration: 110,
   }
 ];

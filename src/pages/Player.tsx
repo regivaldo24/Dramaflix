@@ -321,7 +321,7 @@ export default function PlayerPage() {
         const videoElement = document.createElement("video");
         videoElement.className = "video-js vjs-big-play-centered";
         videoElement.setAttribute("playsinline", "true");
-        videoElement.setAttribute("crossorigin", "anonymous");
+        // Removed crossorigin="anonymous" to avoid CORS issues with random sources
         videoElement.setAttribute("preload", "auto");
         
         if (currentDrama?.image) {
@@ -351,7 +351,7 @@ export default function PlayerPage() {
           }],
           html5: {
             vhs: {
-              overrideNative: true // Use VHS for HLS consistency
+              overrideNative: sourceType === 'application/x-mpegURL'
             }
           }
         }, async () => {
