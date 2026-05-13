@@ -13,60 +13,91 @@ export default function UserContractPage() {
         <h1 className="text-lg font-bold text-white flex-1 text-center pr-6">Contrato do Usuário</h1>
       </div>
 
-      <div className="px-5 py-6 space-y-6 text-[15px] leading-relaxed">
-        <section>
-          <h2 className="text-white font-bold text-base mb-2">Ao acessar este site, você concorda com os seguintes termos:</h2>
-        </section>
+      <div className="px-5 py-6 space-y-8 text-[14px] leading-relaxed">
+        <header className="mb-4">
+          <p className="text-neutral-500 italic">Última atualização: 13 de Maio de 2026</p>
+        </header>
 
         <section>
-          <h2 className="text-white font-bold text-base mb-2">Uso da plataforma</h2>
+          <h2 className="text-white font-bold text-lg mb-3">1. Aceitação dos Termos</h2>
           <p className="text-neutral-400">
-            O usuário concorda em utilizar o site de forma legal e respeitando as leis vigentes.
+            Ao acessar e utilizar nossa plataforma de streaming de dramas, você concorda em cumprir e estar vinculado a estes Termos de Uso. Se você não concordar com qualquer parte deste contrato, deverá interromper o uso da plataforma imediatamente.
           </p>
         </section>
 
         <section>
-          <h2 className="text-white font-bold text-base mb-2">Conta do usuário</h2>
+          <h2 className="text-white font-bold text-lg mb-3">2. Descrição do Serviço</h2>
           <p className="text-neutral-400">
-            Cada usuário pode possuir apenas uma conta.
+            A plataforma oferece acesso a conteúdos de vídeo sob demanda, incluindo dramas, minisséries e shorts. O acesso ao conteúdo pode ser gratuito (baseado em anúncios), mediante o uso de moedas virtuais (Bônus/Ouro) ou através de assinaturas VIP.
           </p>
         </section>
 
         <section>
-          <h2 className="text-white font-bold text-base mb-2">Moedas virtuais</h2>
-          <p className="text-neutral-400">
-            As moedas são virtuais e não possuem valor monetário real.
+          <h2 className="text-white font-bold text-lg mb-3">3. Conta e Segurança</h2>
+          <p className="text-neutral-400 mb-2">
+            Para acessar certas funcionalidades, você deve criar uma conta. Você é responsável por:
           </p>
-        </section>
-
-        <section>
-          <h2 className="text-white font-bold text-base mb-2">Anúncios</h2>
-          <p className="text-neutral-400">
-            O usuário pode assistir anúncios para ganhar recompensas dentro da plataforma.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-white font-bold text-base mb-2">Proibições</h2>
-          <ul className="text-neutral-400 list-disc pl-5 space-y-1">
-            <li>Fraudar o sistema</li>
-            <li>Criar múltiplas contas</li>
-            <li>Utilizar bots</li>
+          <ul className="text-neutral-400 list-disc pl-5 space-y-2">
+            <li>Manter a confidencialidade de sua senha e dados de acesso.</li>
+            <li>Fornecer informações precisas e completas durante o registro.</li>
+            <li>Notificar-nos imediatamente sobre qualquer uso não autorizado de sua conta.</li>
           </ul>
         </section>
 
         <section>
-          <h2 className="text-white font-bold text-base mb-2">Modificações</h2>
+          <h2 className="text-white font-bold text-lg mb-3">4. Moedas Virtuais e Transações</h2>
+          <p className="text-neutral-400 mb-3">
+            Nossa plataforma utiliza um sistema de moedas virtuais. Ouros podem ser adquiridos com moeda real, enquanto Bônus são ganhos através de atividades na plataforma.
+          </p>
+          <ul className="text-neutral-400 list-disc pl-5 space-y-2">
+            <li><strong>Sem Reembolso:</strong> Compras de moedas virtuais e planos VIP não são reembolsáveis, exceto onde exigido por lei.</li>
+            <li><strong>Uso Virtual:</strong> Moedas não possuem valor monetário fora da plataforma e não podem ser trocadas por dinheiro real.</li>
+            <li><strong>Validade:</strong> Reservamo-nos o direito de gerir, controlar e modificar moedas virtuais a qualquer momento.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-white font-bold text-lg mb-3">5. Propriedade Intelectual</h2>
           <p className="text-neutral-400">
-            O site pode alterar estes termos a qualquer momento.
+            Todo o conteúdo disponível na plataforma (vídeos, imagens, textos, logotipos) é de propriedade exclusiva da empresa ou de seus licenciadores. O uso da plataforma concede a você uma licença pessoal, não comercial, revogável e não transferível para visualizar o conteúdo. É estritamente proibida a reprodução, captura de tela ou distribuição não autorizada do material.
           </p>
         </section>
 
         <section>
-          <h2 className="text-white font-bold text-base mb-2">Contato</h2>
-          <p className="text-neutral-400">
-             <a href="mailto:irformaticajr@gmail.com" className="text-yellow-500 hover:underline">irformaticajr@gmail.com</a>
+          <h2 className="text-white font-bold text-lg mb-3">6. Conduta Proibida</h2>
+          <p className="text-neutral-400 mb-2">
+            Os usuários concordam em NÃO:
           </p>
+          <ul className="text-neutral-400 list-disc pl-5 space-y-2">
+            <li>Tentar contornar medidas de segurança ou restrições de região (VPN).</li>
+            <li>Usar scripts, bots ou automações para ganhar moedas indevidamente.</li>
+            <li>Publicar conteúdo ofensivo, difamatório ou ilegal na seção de comentários.</li>
+            <li>Praticar qualquer forma de pirataria ou compartilhamento de contas.</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-white font-bold text-lg mb-3">7. Limitação de Responsabilidade</h2>
+          <p className="text-neutral-400">
+            A plataforma é fornecida "como está", sem garantias de disponibilidade ininterrupta. Não nos responsabilizamos por perdas decorrentes de problemas técnicos, falhas de rede ou encerramento de licenças de conteúdos específicos.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-white font-bold text-lg mb-3">8. Modificações e Rescisão</h2>
+          <p className="text-neutral-400">
+            Podemos atualizar estes Termos a qualquer momento. O uso continuado após as alterações indica aceitação. Reservamo-nos o direito de suspender ou encerrar contas que violem estas regras, sem aviso prévio.
+          </p>
+        </section>
+
+        <section className="bg-neutral-900 ring-1 ring-neutral-800 p-4 rounded-2xl">
+          <h2 className="text-white font-bold text-lg mb-3">Dúvidas?</h2>
+          <p className="text-neutral-400 mb-2">
+            Se você tiver perguntas sobre este Contrato, entre em contato com nossa equipe de suporte.
+          </p>
+          <a href="mailto:irformaticajr@gmail.com" className="text-yellow-500 font-bold hover:underline">
+            irformaticajr@gmail.com
+          </a>
         </section>
       </div>
     </div>
