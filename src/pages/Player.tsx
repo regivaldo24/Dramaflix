@@ -11,6 +11,7 @@ import {
 import { useAccess } from "../hooks/useAccess";
 import { useAuth } from "../contexts/AuthContext";
 import { mockDramas } from "../data/mockData";
+import Comments from "../components/Comments";
 
 export default function PlayerPage() {
   const { id } = useParams<{ id: string }>();
@@ -1181,6 +1182,8 @@ export default function PlayerPage() {
                     </span>
                   </div>
                 </div>
+
+                {id && <Comments dramaId={id} />}
               </div>
             </div>
           )}

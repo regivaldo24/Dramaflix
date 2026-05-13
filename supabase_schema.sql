@@ -80,3 +80,18 @@ CREATE TABLE IF NOT EXISTS public.transactions (
 );
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Usuários podem ver suas próprias transações" ON public.transactions FOR SELECT USING (auth.uid() = user_id);
+
+
+-- 5. Tabela de Comentários
+CREATE TABLE IF NOT EXISTS public.comments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  drama_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Comentários são públicos para leitura" ON public.comments FOR SELECT USING (true);
+CREATE POLICY "Usuários podem criar comentários" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Usuários podem deletar seus próprios comentários" ON public.comments FOR DELETE USING (auth.uid() = user_id);
+CREATE POLICY "Usuários podem atualizar seus próprios comentários" ON public.comments FOR UPDATE USING (auth.uid() = user_id);

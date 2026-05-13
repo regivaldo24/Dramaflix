@@ -9,10 +9,15 @@ import { MovieCard } from "../components/MovieCard";
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const categories = ["Descobrir", "Novas", "Categorias", "Rankings", "Minisséries"];
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeTag, setActiveTag] = useState("Todos");
   const { podeAssistir, isOwner } = useAccess();
   const { user } = useAuth();
+
+  const tags = useMemo(() => {
+    const allTags = mockDramas.map(d => d.tag).filter(Boolean);
+    return ["Todos", ...Array.from(new Set(allTags))];
+  }, []);
 
   const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
 
@@ -21,10 +26,19 @@ export default function HomePage() {
   };
 
   const filteredDramas = useMemo(() => {
-    if (!searchQuery.trim()) return mockDramas;
-    const query = searchQuery.toLowerCase();
-    return mockDramas.filter(drama => drama.title.toLowerCase().includes(query));
-  }, [searchQuery]);
+    let list = mockDramas;
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      list = list.filter(drama => drama.title.toLowerCase().includes(query));
+    }
+    
+    if (activeTag !== "Todos") {
+      list = list.filter(drama => drama.tag === activeTag);
+    }
+    
+    return list;
+  }, [searchQuery, activeTag]);
 
   const watchedDramas = useMemo(() => {
     if (!user) return [];
@@ -117,34 +131,50 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* Tabs */}
+      {/* Category Tags Filter */}
       {!searchQuery.trim() && (
-        <div className="flex overflow-x-auto no-scrollbar gap-6 px-4 pt-2 pb-4 text-white text-sm font-semibold border-b border-neutral-900 snap-x">
-          {categories.map((cat, idx) => (
+        <div className="flex overflow-x-auto no-scrollbar gap-6 px-4 pt-2 pb-4 text-white text-sm font-semibold border-b border-neutral-900 snap-x sticky top-16 bg-black/90 backdrop-blur-md z-30">
+          {tags.map((tag) => (
             <button
-              key={cat}
-              className={`whitespace-nowrap pb-1 relative snap-start shrink-0 ${
-                idx === 0 ? "text-white" : "text-neutral-400"
+              key={tag}
+              onClick={() => setActiveTag(tag)}
+              className={`whitespace-nowrap pb-2 relative snap-start shrink-0 transition-all duration-300 ${
+                activeTag === tag ? "text-yellow-500 scale-105" : "text-neutral-400 hover:text-white"
               }`}
             >
-              {cat}
-              {idx === 0 && (
-                <div className="absolute -bottom-4 left-0 right-0 h-0.5 bg-white rounded-full" />
+              {tag}
+              {activeTag === tag && (
+                <div className="absolute -bottom-[1px] left-0 right-0 h-0.5 bg-yellow-500 rounded-full shadow-[0_0_10px_rgba(234,179,8,0.5)]" />
               )}
             </button>
           ))}
         </div>
       )}
 
-      {searchQuery.trim() ? (
-        <div className="px-4 py-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
-          <h2 className="col-span-full text-xl font-bold mb-2 text-white">Resultados da Busca</h2>
+      {searchQuery.trim() || activeTag !== "Todos" ? (
+        <div className="px-4 py-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6 relative z-10">
+          <div className="col-span-full flex items-center justify-between mb-2">
+            <h2 className="text-xl font-bold text-white">
+              {searchQuery.trim() ? "Resultados da Busca" : `Explorar: ${activeTag}`}
+            </h2>
+            {activeTag !== "Todos" && !searchQuery.trim() && (
+              <button 
+                onClick={() => setActiveTag("Todos")}
+                className="text-xs text-neutral-500 hover:text-white transition-colors"
+              >
+                Limpar Filtro
+              </button>
+            )}
+          </div>
           {filteredDramas.map((drama) => (
             <MovieCard key={drama.id} drama={drama} handlePlayDrama={handlePlayDrama} user={user} />
           ))}
           {filteredDramas.length === 0 && (
-            <div className="col-span-full py-10 text-center text-neutral-500">
-              Nenhum drama encontrado.
+            <div className="col-span-full py-20 text-center flex flex-col items-center gap-4">
+              <div className="p-4 bg-neutral-900 rounded-full">
+                <Search className="w-8 h-8 text-neutral-700" />
+              </div>
+              <p className="text-neutral-500">Nenhum drama encontrado para "{searchQuery || activeTag}".</p>
             </div>
           )}
         </div>
