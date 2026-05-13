@@ -63,6 +63,15 @@ export default function PlayerPage() {
   const [hoverX, setHoverX] = useState(0);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
+  const getSourceType = (url: string) => {
+    if (!url) return 'video/mp4';
+    if (url.includes('.m3u8')) return 'application/x-mpegURL';
+    if (url.includes('.mp4')) return 'video/mp4';
+    if (url.includes('.webm')) return 'video/webm';
+    if (url.includes('.ogg')) return 'video/ogg';
+    return 'video/mp4';
+  };
+
   const currentDrama = mockDramas.find(d => d.id.toString() === id);
   const currentIndex = mockDramas.findIndex(d => d.id.toString() === id);
   const nextDrama = currentIndex !== -1 && currentIndex < mockDramas.length - 1 
@@ -324,9 +333,10 @@ export default function PlayerPage() {
         videojs.log.level('off');
 
         // Source selection
-        const hlsSource = currentDrama?.trailer || "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8";
-        const isHls = hlsSource.includes('.m3u8');
-        const sourceType = isHls ? 'application/x-mpegURL' : 'video/mp4';
+        const primarySource = currentDrama?.trailer || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+        const fallbackSource = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
+        
+        const sourceType = getSourceType(primarySource);
 
         player = videojs(videoElement, {
           autoplay: true,
@@ -336,13 +346,12 @@ export default function PlayerPage() {
           preload: 'auto',
           playbackRates: [0.5, 1, 1.5, 2],
           sources: [{ 
-            src: hlsSource, 
+            src: primarySource, 
             type: sourceType 
           }],
           html5: {
             vhs: {
-              overrideNative: !videojs.browser.IS_SAFARI,
-              debug: false
+              overrideNative: true // Use VHS for HLS consistency
             }
           }
         }, async () => {
@@ -355,18 +364,22 @@ export default function PlayerPage() {
           // Sync time from storage or Supabase or URL
           let savedTimeFromSupabase = 0;
           try {
-            const { data } = await supabase
-              .from('watch_history')
-              .select('last_time')
-              .eq('user_id', user?.id)
-              .eq('drama_id', id)
-              .single();
-            if (data) savedTimeFromSupabase = data.last_time;
+            if (user && id) {
+              const { data } = await supabase
+                .from('watch_history')
+                .select('last_time')
+                .eq('user_id', user.id)
+                .eq('drama_id', id)
+                .single();
+              if (data) savedTimeFromSupabase = data.last_time;
+            }
           } catch (e) {}
 
           let savedTimeStr = null;
           try {
-            savedTimeStr = localStorage.getItem(`historico_tempo_${user?.id}_${id}`);
+            if (user && id) {
+              savedTimeStr = localStorage.getItem(`historico_tempo_${user.id}_${id}`);
+            }
           } catch (e) {}
           
           const urlParams = new URLSearchParams(window.location.search);
@@ -387,16 +400,16 @@ export default function PlayerPage() {
             const err = player.error();
             console.error("VideoJS Error Detail:", err);
             
-            if (err.code === 4 && player.src() === currentDrama?.trailer) {
+            // If primary fails, try fallback MP4
+            if (err.code === 4 && player.src() !== fallbackSource) {
               console.log("Primary source failed, attempting fallback...");
-              const fallbackSource = "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8";
               player.src({
                 src: fallbackSource,
-                type: 'application/x-mpegURL'
+                type: 'video/mp4'
               });
               player.play().catch(() => {});
             } else {
-              setError(`Erro ao carregar mídia (${err.code}): ${err.message}`);
+              setError(`Erro ao carregar mídia (${err.code}): ${err.message}. Verifique sua conexão ou tente novamente mais tarde.`);
             }
           });
 
@@ -1147,7 +1160,14 @@ export default function PlayerPage() {
                     <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black uppercase text-yellow-500 border border-yellow-500/20 animate-pulse">
                       Pré-carregando próximo episódio: {Math.round(preloadProgress)}%
                     </div>
-                    <video ref={nextVideoRef} src={nextDrama.trailer} className="hidden" preload="auto" muted />
+                    <video 
+                      ref={nextVideoRef} 
+                      className="hidden" 
+                      preload="auto" 
+                      muted 
+                    >
+                      <source src={nextDrama.trailer} type={getSourceType(nextDrama.trailer)} />
+                    </video>
                   </div>
                 )}
               </div>

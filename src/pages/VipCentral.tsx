@@ -231,7 +231,7 @@ export default function VipCentralPage() {
             Benefícios VIP
           </h4>
           
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 mb-8">
             <BenefitItem 
               icon={Video} 
               label="Todos os dramas gratuitos" 
@@ -257,6 +257,45 @@ export default function VipCentralPage() {
                icon={PlayCircle} 
                label="Aproveite os novos dramas..." 
             />
+          </div>
+
+          <div className="bg-neutral-900/50 border border-neutral-800 rounded-3xl overflow-hidden mb-10 overflow-x-auto">
+            <table className="w-full border-collapse min-w-[320px]">
+              <thead>
+                <tr className="bg-neutral-900 border-b border-neutral-800">
+                  <th className="p-4 text-left text-[10px] font-black uppercase tracking-widest text-neutral-500">Recurso</th>
+                  <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-orange-400">Bronze</th>
+                  <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-neutral-300">Prata</th>
+                  <th className="p-2 text-center text-[10px] font-black uppercase tracking-widest text-yellow-500">Ouro</th>
+                </tr>
+              </thead>
+              <tbody className="text-[12px]">
+                <tr className="border-t border-neutral-800/50">
+                  <td className="p-4 font-bold text-neutral-300">Acesso</td>
+                  <td className="p-2 text-center text-neutral-500">Limit.</td>
+                  <td className="p-2 text-center text-neutral-300">Médio</td>
+                  <td className="p-2 text-center text-yellow-500 font-black">FULL</td>
+                </tr>
+                <tr className="border-t border-neutral-800/50">
+                  <td className="p-4 font-bold text-neutral-300">Anúncios</td>
+                  <td className="p-2 text-center text-neutral-500">Sim</td>
+                  <td className="p-2 text-center text-green-500">Não</td>
+                  <td className="p-2 text-center text-green-500">Não</td>
+                </tr>
+                <tr className="border-t border-neutral-800/50">
+                  <td className="p-4 font-bold text-neutral-300">Qualidade</td>
+                  <td className="p-2 text-center text-neutral-500">SD</td>
+                  <td className="p-2 text-center text-neutral-300">HD</td>
+                  <td className="p-2 text-center text-yellow-500 font-black">4K</td>
+                </tr>
+                <tr className="border-t border-neutral-800/50">
+                  <td className="p-4 font-bold text-neutral-300">Preço</td>
+                  <td className="p-2 text-center font-black text-white">R$ 29,90</td>
+                  <td className="p-2 text-center font-black text-white">R$ 59,90</td>
+                  <td className="p-2 text-center font-black text-yellow-500">R$ 499,90</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
