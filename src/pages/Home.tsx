@@ -1,4 +1,4 @@
-import { Search, Gift, ChevronRight, ChevronLeft, Heart, Play } from "lucide-react";
+import { Search, Gift, ChevronRight, ChevronLeft, Heart, Play, Share2, Check } from "lucide-react";
 import { mockDramas } from "../data/mockData";
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -15,6 +15,7 @@ export default function HomePage() {
   const [watchHistory, setWatchHistory] = useState<any[]>([]);
   const { podeAssistir, isOwner } = useAccess();
   const { user } = useAuth();
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -121,6 +122,21 @@ export default function HomePage() {
   };
 
   const currentHeroDrama = heroDramas[currentHeroIndex] || filteredDramas[0];
+
+  const handleShare = (drama: any) => {
+    const url = `${window.location.origin}/play/${drama.id}`;
+    if (navigator.share) {
+      navigator.share({
+        title: drama.title,
+        text: `Assista ${drama.title} no nosso portal de dramas!`,
+        url: url,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-black overflow-y-auto overflow-x-hidden no-scrollbar pb-20">
@@ -259,6 +275,14 @@ export default function HomePage() {
                       className="bg-neutral-500/40 hover:bg-neutral-500/60 text-white font-bold py-2 sm:py-2.5 px-4 sm:px-8 rounded-md transition backdrop-blur-md border border-white/10 active:scale-95"
                     >
                       Informações
+                    </button>
+
+                    <button 
+                      onClick={() => handleShare(currentHeroDrama)}
+                      className="bg-neutral-800/60 hover:bg-neutral-800/80 text-white font-bold py-2 sm:py-2.5 px-4 rounded-md transition backdrop-blur-md border border-white/5 active:scale-95 flex items-center justify-center gap-2 group/share"
+                    >
+                      {copied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />}
+                      {copied ? "Copiado" : "Compartilhar"}
                     </button>
                   </div>
                 </div>

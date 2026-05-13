@@ -107,6 +107,11 @@ export default function SettingsPage() {
             <ChevronRight className="w-4 h-4 text-neutral-500" />
           </button>
 
+          <button onClick={() => navigate("/terms-of-use")} className="w-full flex items-center justify-between py-5 px-2 hover:bg-neutral-800/20 transition group border-b border-neutral-900/40">
+            <span className="text-[15px] font-medium text-gray-200">Termos de Uso</span>
+            <ChevronRight className="w-4 h-4 text-neutral-500" />
+          </button>
+
           <button onClick={() => navigate("/user-contract")} className="w-full flex items-center justify-between py-5 px-2 hover:bg-neutral-800/20 transition group border-b border-neutral-900/40">
             <span className="text-[15px] font-medium text-gray-200">{t("userContract")}</span>
             <ChevronRight className="w-4 h-4 text-neutral-500" />

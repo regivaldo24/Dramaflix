@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Heart } from "lucide-react";
+import { Heart, Share2, Check, Copy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -16,6 +16,7 @@ export const MovieCard = ({ drama, handlePlayDrama, user, onFavoriteChange, prog
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -47,6 +48,23 @@ export const MovieCard = ({ drama, handlePlayDrama, user, onFavoriteChange, prog
     if (videoRef.current) {
         videoRef.current.pause();
         videoRef.current.currentTime = 0;
+    }
+  };
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/play/${drama.id}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: drama.title,
+        text: `Assista ${drama.title} no nosso portal de dramas!`,
+        url: url,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
 
@@ -119,6 +137,14 @@ export const MovieCard = ({ drama, handlePlayDrama, user, onFavoriteChange, prog
           className="absolute top-2 left-2 z-20 w-8 h-8 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
         >
           <Heart className={`w-4 h-4 ${isFavorite ? "fill-red-500 text-red-500" : "text-white"}`} />
+        </button>
+
+        <button 
+          onClick={handleShare}
+          className="absolute top-12 left-2 z-20 w-8 h-8 flex items-center justify-center bg-black/50 backdrop-blur-sm rounded-full hover:bg-black/70 transition-colors"
+          title="Compartilhar"
+        >
+          {copied ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4 text-white" />}
         </button>
 
         <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-black via-black/40 to-transparent pointer-events-none" />

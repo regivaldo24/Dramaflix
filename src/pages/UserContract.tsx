@@ -1,16 +1,40 @@
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Share2, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 export default function UserContractPage() {
   const navigate = useNavigate();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    const url = window.location.origin + "/user-contract";
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="flex flex-col h-full bg-[#0a0a0a] overflow-y-auto no-scrollbar relative min-h-screen text-gray-200">
-      <div className="sticky top-0 bg-[#0a0a0a] z-10 flex items-center px-4 pt-12 pb-4 border-b border-neutral-900/50">
+    <div className="flex flex-col h-full bg-[#0a0a0a] overflow-y-auto no-scrollbar relative min-h-screen text-gray-200 pb-20">
+      <div className="sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-md z-10 flex items-center px-4 pt-12 pb-4 border-b border-neutral-900/50 justify-between">
         <button onClick={() => navigate(-1)} className="p-1 -ml-1 hover:bg-neutral-800 rounded-full transition">
           <ChevronLeft className="w-6 h-6 text-white" />
         </button>
-        <h1 className="text-lg font-bold text-white flex-1 text-center pr-6">Contrato do Usuário</h1>
+        <h1 className="text-lg font-bold text-white">Contrato do Usuário</h1>
+        <button 
+          onClick={handleCopyLink}
+          className="p-1 -mr-1 hover:bg-neutral-800 rounded-full transition relative"
+        >
+          {copied ? (
+            <Check className="w-5 h-5 text-green-500" />
+          ) : (
+            <Share2 className="w-5 h-5 text-white" />
+          )}
+          {copied && (
+            <span className="absolute top-10 right-0 bg-neutral-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap">
+              Link copiado!
+            </span>
+          )}
+        </button>
       </div>
 
       <div className="px-5 py-6 space-y-8 text-[14px] leading-relaxed">

@@ -87,6 +87,26 @@ export default function PlayerPage() {
   const shareText = `Estou assistindo ${currentDrama?.title} - Episódio ${id} no nosso portal de dramas!`;
 
   const shareActions = {
+    native: async (withTime = false) => {
+      const url = withTime ? getShareUrlWithTime() : shareUrl;
+      const data = {
+        title: currentDrama?.title,
+        text: shareText,
+        url: url
+      };
+
+      if (navigator.share) {
+        try {
+          await navigator.share(data);
+          return true;
+        } catch (err) {
+          if (err instanceof Error && err.name !== 'AbortError') {
+             console.error('Error sharing:', err);
+          }
+        }
+      }
+      return false;
+    },
     facebook: (withTime = false) => {
       const url = withTime ? getShareUrlWithTime() : shareUrl;
       window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
@@ -113,6 +133,13 @@ export default function PlayerPage() {
       } catch (err) {
         console.error('Failed to copy: ', err);
       }
+    }
+  };
+
+  const handleShareClick = async () => {
+    const shared = await shareActions.native();
+    if (!shared) {
+      setShowShareMenu(!showShareMenu);
     }
   };
 
@@ -1202,7 +1229,7 @@ export default function PlayerPage() {
                     
                     <div className="relative" ref={shareMenuRef}>
                       <button 
-                        onClick={() => setShowShareMenu(!showShareMenu)}
+                        onClick={handleShareClick}
                         className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition ${showShareMenu ? 'bg-yellow-500 text-black' : 'bg-neutral-800 hover:bg-neutral-700 text-white'}`}
                       >
                         <Share2 className="w-4 h-4" /> 
