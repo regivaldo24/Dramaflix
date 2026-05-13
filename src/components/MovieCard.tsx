@@ -8,10 +8,11 @@ interface MovieCardProps {
   handlePlayDrama: (id: string, title: string) => void;
   user: any;
   onFavoriteChange?: () => void;
-  key?: any; // Add key to props to resolve TS error in some environments
+  progress?: number; // Porcentagem de 0 a 100
+  key?: any;
 }
 
-export const MovieCard = ({ drama, handlePlayDrama, user, onFavoriteChange }: MovieCardProps) => {
+export const MovieCard = ({ drama, handlePlayDrama, user, onFavoriteChange, progress }: MovieCardProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -126,6 +127,15 @@ export const MovieCard = ({ drama, handlePlayDrama, user, onFavoriteChange }: Mo
             {drama.title}
           </p>
         </div>
+
+        {progress !== undefined && progress > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-neutral-800 z-20">
+            <div 
+              className="h-full bg-yellow-500 shadow-[0_0_5px_rgba(234,179,8,0.5)]" 
+              style={{ width: `${Math.min(progress, 100)}%` }} 
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useAccess } from "../hooks/useAccess";
 import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 import { mockDramas } from "../data/mockData";
 import Comments from "../components/Comments";
 
@@ -25,6 +26,7 @@ export default function PlayerPage() {
   
   const [error, setError] = useState<string | null>(null);
   const [isPreloading, setIsPreloading] = useState(false);
+  const [preloadProgress, setPreloadProgress] = useState(0);
   const preloadingStartedRef = useRef(false);
   const [showNextPrompt, setShowNextPrompt] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -49,6 +51,7 @@ export default function PlayerPage() {
   const skipIntroTime = 90; // Standard intro length
   const sleepTimerRef = useRef<any>(null);
   const [sleepTimeLimit, setSleepTimeLimit] = useState<number | null>(null); // in minutes
+  const lastSavedTimeRef = useRef<number>(0);
   const initializingRef = useRef(false);
   
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -252,6 +255,27 @@ export default function PlayerPage() {
   }, [handleMouseMove]);
 
   useEffect(() => {
+    if (isPreloading && nextVideoRef.current) {
+      const video = nextVideoRef.current;
+      
+      const handleProgress = () => {
+        if (video.buffered.length > 0 && video.duration > 0) {
+          const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+          const percent = (bufferedEnd / video.duration) * 100;
+          setPreloadProgress(percent);
+        }
+      };
+
+      video.addEventListener('progress', handleProgress);
+      video.load();
+      
+      return () => {
+        video.removeEventListener('progress', handleProgress);
+      };
+    }
+  }, [isPreloading]);
+
+  useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
@@ -264,118 +288,156 @@ export default function PlayerPage() {
 
     let player: any = null;
 
-    const initPlayer = async () => {
-      if (videoRef.current && !playerRef.current) {
-        // Safe check for existing player instance
-        try {
-          const videoElement = document.createElement("video");
-          videoElement.className = "video-js vjs-big-play-centered";
-          videoElement.setAttribute("playsinline", "true");
-          videoElement.setAttribute("crossorigin", "anonymous");
-          videoElement.setAttribute("preload", "auto");
-          
-          if (currentDrama?.image) {
-            videoElement.setAttribute("poster", currentDrama.image);
+  const saveProgress = async (cur: number, dur: number) => {
+    if (!user || !id) return;
+    try {
+      await supabase
+        .from('watch_history')
+        .upsert({
+          user_id: user.id,
+          drama_id: id,
+          last_time: cur,
+          duration: dur,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'user_id,drama_id' });
+    } catch (err) {
+      console.error("Error saving progress:", err);
+    }
+  };
+
+  const initPlayer = async () => {
+    if (videoRef.current && !playerRef.current) {
+      // Safe check for existing player instance
+      try {
+        const videoElement = document.createElement("video");
+        videoElement.className = "video-js vjs-big-play-centered";
+        videoElement.setAttribute("playsinline", "true");
+        videoElement.setAttribute("crossorigin", "anonymous");
+        videoElement.setAttribute("preload", "auto");
+        
+        if (currentDrama?.image) {
+          videoElement.setAttribute("poster", currentDrama.image);
+        }
+        videoRef.current.appendChild(videoElement);
+
+        // Disable logging and debug
+        videojs.log.level('off');
+
+        // Source selection
+        const hlsSource = currentDrama?.trailer || "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8";
+        const isHls = hlsSource.includes('.m3u8');
+        const sourceType = isHls ? 'application/x-mpegURL' : 'video/mp4';
+
+        player = videojs(videoElement, {
+          autoplay: true,
+          controls: false,
+          responsive: true,
+          fluid: true,
+          preload: 'auto',
+          playbackRates: [0.5, 1, 1.5, 2],
+          sources: [{ 
+            src: hlsSource, 
+            type: sourceType 
+          }],
+          html5: {
+            vhs: {
+              overrideNative: !videojs.browser.IS_SAFARI,
+              debug: false
+            }
           }
-          videoRef.current.appendChild(videoElement);
+        }, async () => {
+          playerRef.current = player;
+          
+          // Sync initial state
+          player.volume(volume);
+          player.muted(isMuted);
 
-          // Disable logging and debug
-          videojs.log.level('off');
+          // Sync time from storage or Supabase or URL
+          let savedTimeFromSupabase = 0;
+          try {
+            const { data } = await supabase
+              .from('watch_history')
+              .select('last_time')
+              .eq('user_id', user?.id)
+              .eq('drama_id', id)
+              .single();
+            if (data) savedTimeFromSupabase = data.last_time;
+          } catch (e) {}
 
-          // Source selection
-          const hlsSource = currentDrama?.trailer || "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8";
-          const isHls = hlsSource.includes('.m3u8');
-          const sourceType = isHls ? 'application/x-mpegURL' : 'video/mp4';
+          let savedTimeStr = null;
+          try {
+            savedTimeStr = localStorage.getItem(`historico_tempo_${user?.id}_${id}`);
+          } catch (e) {}
+          
+          const urlParams = new URLSearchParams(window.location.search);
+          const timeParamStr = urlParams.get('t');
 
-          player = videojs(videoElement, {
-            autoplay: true,
-            controls: false,
-            responsive: true,
-            fluid: true,
-            preload: 'auto',
-            playbackRates: [0.5, 1, 1.5, 2],
-            sources: [{ 
-              src: hlsSource, 
-              type: sourceType 
-            }],
-            html5: {
-              vhs: {
-                overrideNative: !videojs.browser.IS_SAFARI,
-                debug: false
+          if (timeParamStr) {
+            const t = parseFloat(timeParamStr);
+            if (!isNaN(t)) player.currentTime(t);
+          } else if (savedTimeFromSupabase > 0) {
+            player.currentTime(savedTimeFromSupabase);
+          } else if (savedTimeStr) {
+            const t = parseFloat(savedTimeStr);
+            if (!isNaN(t)) player.currentTime(t);
+          }
+          
+          // Error handling with automatic fallback
+          player.on('error', () => {
+            const err = player.error();
+            console.error("VideoJS Error Detail:", err);
+            
+            if (err.code === 4 && player.src() === currentDrama?.trailer) {
+              console.log("Primary source failed, attempting fallback...");
+              const fallbackSource = "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8";
+              player.src({
+                src: fallbackSource,
+                type: 'application/x-mpegURL'
+              });
+              player.play().catch(() => {});
+            } else {
+              setError(`Erro ao carregar mídia (${err.code}): ${err.message}`);
+            }
+          });
+
+          player.on('timeupdate', () => {
+            if (!player || player.isDisposed()) return;
+            const cur = player.currentTime();
+            const dur = player.duration();
+            setCurrentTime(cur);
+            setDuration(dur);
+            
+            // Skip Intro logic: show between 10s and 90s
+            if (cur >= 10 && cur < skipIntroTime) {
+              setShowSkipIntro(true);
+            } else {
+              setShowSkipIntro(false);
+            }
+            
+            if (dur > 0) {
+              const progress = cur / dur;
+              if (progress > 0.8 && nextDrama && !preloadingStartedRef.current) {
+                preloadingStartedRef.current = true;
+                setIsPreloading(true);
+              }
+              if (progress > 0.95 && nextDrama) {
+                setShowNextPrompt(true);
               }
             }
-          }, () => {
-            playerRef.current = player;
-            
-            // Sync initial state
-            player.volume(volume);
-            player.muted(isMuted);
 
-            // Sync time from storage or URL
-            let savedTimeStr = null;
-            try {
-              savedTimeStr = localStorage.getItem(`historico_tempo_${user?.id}_${id}`);
-            } catch (e) {}
-            
-            const urlParams = new URLSearchParams(window.location.search);
-            const timeParamStr = urlParams.get('t');
-
-            if (timeParamStr) {
-              const t = parseFloat(timeParamStr);
-              if (!isNaN(t)) player.currentTime(t);
-            } else if (savedTimeStr) {
-              const t = parseFloat(savedTimeStr);
-              if (!isNaN(t)) player.currentTime(t);
+            // Save to localStorage every 5 seconds
+            if (Math.floor(cur) % 5 === 0 && user) {
+               try {
+                 localStorage.setItem(`historico_tempo_${user.id}_${id}`, cur.toString());
+               } catch (e) {}
             }
-            
-            // Error handling with automatic fallback
-            player.on('error', () => {
-              const err = player.error();
-              console.error("VideoJS Error Detail:", err);
-              
-              if (err.code === 4 && player.src() === currentDrama?.trailer) {
-                console.log("Primary source failed, attempting fallback...");
-                const fallbackSource = "https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8";
-                player.src({
-                  src: fallbackSource,
-                  type: 'application/x-mpegURL'
-                });
-                player.play().catch(() => {});
-              } else {
-                setError(`Erro ao carregar mídia (${err.code}): ${err.message}`);
-              }
-            });
 
-            player.on('timeupdate', () => {
-              if (!player || player.isDisposed()) return;
-              const cur = player.currentTime();
-              const dur = player.duration();
-              setCurrentTime(cur);
-              setDuration(dur);
-              
-              // Skip Intro logic: show between 10s and 90s
-              if (cur >= 10 && cur < skipIntroTime) {
-                setShowSkipIntro(true);
-              } else {
-                setShowSkipIntro(false);
-              }
-              
-              if (dur > 0) {
-                const progress = cur / dur;
-                if (progress > 0.8 && nextDrama && !preloadingStartedRef.current) {
-                  preloadingStartedRef.current = true;
-                  setIsPreloading(true);
-                }
-                if (progress > 0.95 && nextDrama) {
-                  setShowNextPrompt(true);
-                }
-              }
-              if (Math.floor(cur) % 5 === 0 && user) {
-                 try {
-                   localStorage.setItem(`historico_tempo_${user.id}_${id}`, cur.toString());
-                 } catch (e) {}
-              }
-            });
+            // Save to Supabase every 15 seconds to avoid excessive calls
+            if (Math.floor(cur) % 15 === 0 && user && Math.abs(cur - lastSavedTimeRef.current) > 10) {
+               lastSavedTimeRef.current = cur;
+               saveProgress(cur, dur);
+            }
+          });
 
             player.on('play', () => setIsPlaying(true));
             player.on('pause', () => setIsPlaying(false));
@@ -1077,8 +1139,14 @@ export default function PlayerPage() {
 
                 {/* Preloader status bar */}
                 {isPreloading && nextDrama && (
-                  <div className="absolute top-0 left-0 w-full h-0.5 bg-neutral-800 z-50">
-                    <div className="h-full bg-yellow-500/50 animate-pulse w-full origin-left" />
+                  <div className="absolute top-0 left-0 w-full h-1 bg-neutral-800 z-50">
+                    <div 
+                      className="h-full bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)] transition-all duration-300 ease-out" 
+                      style={{ width: `${preloadProgress}%` }} 
+                    />
+                    <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black uppercase text-yellow-500 border border-yellow-500/20 animate-pulse">
+                      Pré-carregando próximo episódio: {Math.round(preloadProgress)}%
+                    </div>
                     <video ref={nextVideoRef} src={nextDrama.trailer} className="hidden" preload="auto" muted />
                   </div>
                 )}

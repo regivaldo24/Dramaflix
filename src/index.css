@@ -1,6 +1,25 @@
 @import "tailwindcss";
 @import "video.js/dist/video-js.css";
 
+/* Ocultar barras de rolagem globalmente */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE e Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari e Opera */
+}
+
+/* Utilitário no-scrollbar para Tailwind se necessário */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 .video-js {
   width: 100% !important;
   height: 100% !important;

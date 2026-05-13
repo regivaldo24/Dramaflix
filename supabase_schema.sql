@@ -95,3 +95,19 @@ CREATE POLICY "Comentários são públicos para leitura" ON public.comments FOR 
 CREATE POLICY "Usuários podem criar comentários" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Usuários podem deletar seus próprios comentários" ON public.comments FOR DELETE USING (auth.uid() = user_id);
 CREATE POLICY "Usuários podem atualizar seus próprios comentários" ON public.comments FOR UPDATE USING (auth.uid() = user_id);
+
+
+-- 6. Tabela de Histórico de Visualização (Continuar Assistindo)
+CREATE TABLE IF NOT EXISTS public.watch_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  drama_id TEXT NOT NULL,
+  last_time FLOAT DEFAULT 0,
+  duration FLOAT DEFAULT 0,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE(user_id, drama_id)
+);
+ALTER TABLE public.watch_history ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Usuários podem ver seu próprio histórico" ON public.watch_history FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Usuários podem salvar histórico" ON public.watch_history FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Usuários podem atualizar histórico" ON public.watch_history FOR UPDATE USING (auth.uid() = user_id);

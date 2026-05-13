@@ -2,6 +2,7 @@ import { Search, Gift, ChevronRight, ChevronLeft, Heart, Play } from "lucide-rea
 import { mockDramas } from "../data/mockData";
 import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 
 import { useAccess } from "../hooks/useAccess";
 import { useAuth } from "../contexts/AuthContext";
@@ -11,8 +12,30 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTag, setActiveTag] = useState("Todos");
+  const [watchHistory, setWatchHistory] = useState<any[]>([]);
   const { podeAssistir, isOwner } = useAccess();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      const fetchWatchHistory = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('watch_history')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false })
+            .limit(10);
+          
+          if (error) throw error;
+          if (data) setWatchHistory(data);
+        } catch (err) {
+          console.error("Error fetching watch history:", err);
+        }
+      };
+      fetchWatchHistory();
+    }
+  }, [user]);
 
   const tags = useMemo(() => {
     const allTags = mockDramas.map(d => d.tag).filter(Boolean);
@@ -41,21 +64,17 @@ export default function HomePage() {
   }, [searchQuery, activeTag]);
 
   const watchedDramas = useMemo(() => {
-    if (!user) return [];
-    let viewsStr = null;
-    try {
-      viewsStr = localStorage.getItem(`views_${user.id}`);
-    } catch (e) {}
-    
-    let views = [];
-    try {
-      views = viewsStr ? JSON.parse(viewsStr) : [];
-      if (!Array.isArray(views)) views = [];
-    } catch (e) {
-      views = [];
-    }
-    return views.map((id: any) => mockDramas.find(d => d.id.toString() === id.toString())).filter(Boolean);
-  }, [user]);
+    return watchHistory.map(history => {
+      const drama = mockDramas.find(d => d.id.toString() === history.drama_id.toString());
+      if (drama) {
+        return {
+          ...drama,
+          watchProgress: history.duration > 0 ? (history.last_time / history.duration) * 100 : 0
+        };
+      }
+      return null;
+    }).filter(Boolean);
+  }, [watchHistory]);
 
   const recommendedDramas = useMemo(() => {
     // Lógica estável de recomendação baseada no usuário
@@ -263,10 +282,20 @@ export default function HomePage() {
           {/* Continuar Assistindo */}
           {watchedDramas.length > 0 && (
             <div className="px-4 py-8 relative z-20 mt-4">
-              <h2 className="text-xl md:text-2xl font-bold mb-4 text-white text-shadow">Continuar Assistindo</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
-                {watchedDramas.slice(0, 12).map((drama) => (
-                  <MovieCard key={drama.id} drama={drama} handlePlayDrama={handlePlayDrama} user={user} />
+              <h2 className="text-xl md:text-2xl font-bold mb-4 text-white text-shadow flex items-center gap-2">
+                Continuar Assistindo
+                <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse" />
+              </h2>
+              <div className="flex overflow-x-auto no-scrollbar gap-4 pb-4 snap-x">
+                {watchedDramas.map((drama: any) => (
+                  <div key={`watch-${drama.id}`} className="w-[140px] sm:w-[160px] md:w-[180px] snap-start shrink-0">
+                    <MovieCard 
+                      drama={drama} 
+                      handlePlayDrama={handlePlayDrama} 
+                      user={user} 
+                      progress={drama.watchProgress}
+                    />
+                  </div>
                 ))}
               </div>
             </div>

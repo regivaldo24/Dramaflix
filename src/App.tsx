@@ -147,7 +147,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-black text-white font-sans">
-        <div className="w-full max-w-7xl mx-auto min-h-screen relative shadow-none bg-black overflow-hidden border-x-0 lg:border-x border-neutral-900">
+        <div className="w-full max-w-7xl mx-auto min-h-screen relative shadow-none bg-black border-x-0 lg:border-x border-neutral-900">
           <AnimatedRoutes />
           <BottomNav />
           <ChatWidget />
