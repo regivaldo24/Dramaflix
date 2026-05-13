@@ -1,5 +1,6 @@
 import { BrowserRouter, Route, Routes, Link, useLocation } from "react-router-dom";
 import { Home, MonitorPlay, Bookmark, Smile } from "lucide-react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import HomePage from "./pages/Home";
 import LoginPage from "./pages/Login";
 import PlayerPage from "./pages/Player";
@@ -120,6 +121,7 @@ export default function App() {
           </Routes>
           <BottomNav />
           <ChatWidget />
+          <SpeedInsights />
         </div>
       </div>
     </BrowserRouter>
