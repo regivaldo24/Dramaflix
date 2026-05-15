@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { mockDramas } from '../../data/mockData';
 import { Plus, Edit, Trash2 } from 'lucide-react';
-import AdminConfirmationModal from '../../components/Admin/AdminConfirmationModal';
+import AdminConfirmationModal from '../../components/AdminComponents/AdminConfirmationModal';
 
 export default function AdminMovies() {
   const [filmes, setFilmes] = useState<any[]>([]);

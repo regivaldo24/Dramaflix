@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, Trash2, X, Check, Search, Filter, Ban, Crown, Clock, Mail, ShieldCheck, User as UserIcon, RotateCcw, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import AdminConfirmationModal from '../../components/Admin/AdminConfirmationModal';
+import AdminConfirmationModal from '../../components/AdminComponents/AdminConfirmationModal';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);

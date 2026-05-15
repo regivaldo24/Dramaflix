@@ -94,8 +94,8 @@ export default function LoginScreen({ onLogin, onClose }: LoginScreenProps) {
         }
       }
     } catch (error) {
-      console.error(error);
-      setErrorMsg("Erro de conexão com o servidor.");
+      console.error("Login/Register Error:", error);
+      setErrorMsg("Erro de conexão com o servidor. Verifique os logs do console.");
     } finally {
       setLoading(false);
     }

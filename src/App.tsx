@@ -35,7 +35,7 @@ import AdminEditMovie from "./pages/admin/EditMovie";
 import AdminUsers from "./pages/admin/Users";
 import AdminPlans from "./pages/admin/Plans";
 import AdminPayments from "./pages/admin/Payments";
-import AdminChat from "./components/admin/AdminChat";
+import AdminChat from "./components/AdminComponents/AdminChat";
 import ChatWidget from "./components/ChatWidget";
 
 function BottomNav() {
