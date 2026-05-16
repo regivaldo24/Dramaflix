@@ -126,6 +126,11 @@ export default function SettingsPage() {
             <span className="text-[15px] font-medium text-gray-200">Contato</span>
             <ChevronRight className="w-4 h-4 text-neutral-500" />
           </button>
+
+          <button onClick={() => navigate("/dmca")} className="w-full flex items-center justify-between py-5 px-2 hover:bg-neutral-800/20 transition group border-b border-neutral-900/40">
+            <span className="text-[15px] font-medium text-gray-200">DMCA</span>
+            <ChevronRight className="w-4 h-4 text-neutral-500" />
+          </button>
         </div>
 
         {/* Conta */}

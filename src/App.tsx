@@ -21,6 +21,7 @@ import TermsOfUsePage from "./pages/TermsOfUse";
 import AboutPage from "./pages/About";
 import ContactPage from "./pages/Contact";
 import EditProfilePage from "./pages/EditProfile";
+import DMCAPage from "./pages/DMCA";
 import VipCentralPage from "./pages/VipCentral";
 import SuccessPage from "./pages/Success";
 import FailurePage from "./pages/Failure";
@@ -42,7 +43,7 @@ function BottomNav() {
   const location = useLocation();
   const { t } = useLanguage();
   // Hide BottomNav on certain pages like Account or Admin
-  if (["/shorts", "/account", "/account-management", "/recharge-history", "/unlock-history", "/bonus-history", "/store", "/qa", "/settings", "/user-contract", "/terms-of-use", "/termos", "/privacy-policy", "/politica-privacidade", "/edit-profile", "/contato", "/sobre"].includes(location.pathname) || location.pathname.startsWith('/admin')) return null;
+  if (["/shorts", "/account", "/account-management", "/recharge-history", "/unlock-history", "/bonus-history", "/store", "/qa", "/settings", "/user-contract", "/terms-of-use", "/termos", "/privacy-policy", "/politica-privacidade", "/edit-profile", "/contato", "/sobre", "/dmca"].includes(location.pathname) || location.pathname.startsWith('/admin')) return null;
 
   const navItems = [
     { path: "/", label: t("discover"), icon: Home },
@@ -128,6 +129,7 @@ function AnimatedRoutes() {
           <Route path="/politica-privacidade" element={<PrivacyPolicyPage />} />
           <Route path="/sobre" element={<AboutPage />} />
           <Route path="/contato" element={<ContactPage />} />
+          <Route path="/dmca" element={<DMCAPage />} />
           
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
